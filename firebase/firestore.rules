@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función helper para verificar autenticación
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función helper para verificar que el usuario es el dueño de los datos (lectura/borrado/actualizado)
+    function isOwner(providerId) {
+      return isAuthenticated() && request.auth.uid == providerId;
+    }
+    
+    // Función helper para creación: fuerza que el UID crear coincida con el providerId enviado
+    function isCreatingWithOwnerUID() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.providerId;
+    }
+
+    // Colección de Profesionales (Providers)
+    match /providers/{providerId} {
+      allow read, write: if isOwner(providerId);
+    }
+    
+    // Colección de Pacientes
+    match /patients/{patientId} {
+      allow read, update, delete: if isOwner(resource.data.providerId);
+      allow create: if isCreatingWithOwnerUID();
+    }
+    
+    // Colección de Turnos (Appointments)
+    match /appointments/{appointmentId} {
+      allow read, update, delete: if isOwner(resource.data.providerId);
+      allow create: if isCreatingWithOwnerUID();
+    }
+    
+    // Colección de Pagos (Payments)
+    match /payments/{paymentId} {
+      allow read, update, delete: if isOwner(resource.data.providerId);
+      allow create: if isCreatingWithOwnerUID();
+    }
+    
+    // Colección de Turnos Recurrentes (Recurring Appointments)
+    match /recurring_appointments/{recurringAppointmentId} {
+      allow read, update, delete: if isOwner(resource.data.providerId);
+      allow create: if isCreatingWithOwnerUID();
+    }
+    
+    // Colección de Comunicaciones/Logs (WhatsApp etc)
+    match /communications/{commId} {
+      allow read, update, delete: if isOwner(resource.data.providerId);
+      allow create: if isCreatingWithOwnerUID();
+    }
+  }
+}

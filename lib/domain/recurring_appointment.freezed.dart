@@ -1,0 +1,315 @@
+// coverage:ignore-file
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
+
+part of 'recurring_appointment.dart';
+
+// **************************************************************************
+// FreezedGenerator
+// **************************************************************************
+
+T _$identity<T>(T value) => value;
+
+final _privateConstructorUsedError = UnsupportedError(
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
+
+/// @nodoc
+mixin _$RecurringAppointment {
+  String get id => throw _privateConstructorUsedError;
+  String get patientId => throw _privateConstructorUsedError;
+  String get providerId => throw _privateConstructorUsedError;
+  String get concept => throw _privateConstructorUsedError;
+  double get defaultAmount => throw _privateConstructorUsedError;
+  Frequency get frequency => throw _privateConstructorUsedError;
+  DateTime get baseDate => throw _privateConstructorUsedError;
+
+  /// Create a copy of RecurringAppointment
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $RecurringAppointmentCopyWith<RecurringAppointment> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $RecurringAppointmentCopyWith<$Res> {
+  factory $RecurringAppointmentCopyWith(
+    RecurringAppointment value,
+    $Res Function(RecurringAppointment) then,
+  ) = _$RecurringAppointmentCopyWithImpl<$Res, RecurringAppointment>;
+  @useResult
+  $Res call({
+    String id,
+    String patientId,
+    String providerId,
+    String concept,
+    double defaultAmount,
+    Frequency frequency,
+    DateTime baseDate,
+  });
+}
+
+/// @nodoc
+class _$RecurringAppointmentCopyWithImpl<
+  $Res,
+  $Val extends RecurringAppointment
+>
+    implements $RecurringAppointmentCopyWith<$Res> {
+  _$RecurringAppointmentCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of RecurringAppointment
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? patientId = null,
+    Object? providerId = null,
+    Object? concept = null,
+    Object? defaultAmount = null,
+    Object? frequency = null,
+    Object? baseDate = null,
+  }) {
+    return _then(
+      _value.copyWith(
+            id:
+                null == id
+                    ? _value.id
+                    : id // ignore: cast_nullable_to_non_nullable
+                        as String,
+            patientId:
+                null == patientId
+                    ? _value.patientId
+                    : patientId // ignore: cast_nullable_to_non_nullable
+                        as String,
+            providerId:
+                null == providerId
+                    ? _value.providerId
+                    : providerId // ignore: cast_nullable_to_non_nullable
+                        as String,
+            concept:
+                null == concept
+                    ? _value.concept
+                    : concept // ignore: cast_nullable_to_non_nullable
+                        as String,
+            defaultAmount:
+                null == defaultAmount
+                    ? _value.defaultAmount
+                    : defaultAmount // ignore: cast_nullable_to_non_nullable
+                        as double,
+            frequency:
+                null == frequency
+                    ? _value.frequency
+                    : frequency // ignore: cast_nullable_to_non_nullable
+                        as Frequency,
+            baseDate:
+                null == baseDate
+                    ? _value.baseDate
+                    : baseDate // ignore: cast_nullable_to_non_nullable
+                        as DateTime,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$RecurringAppointmentImplCopyWith<$Res>
+    implements $RecurringAppointmentCopyWith<$Res> {
+  factory _$$RecurringAppointmentImplCopyWith(
+    _$RecurringAppointmentImpl value,
+    $Res Function(_$RecurringAppointmentImpl) then,
+  ) = __$$RecurringAppointmentImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    String id,
+    String patientId,
+    String providerId,
+    String concept,
+    double defaultAmount,
+    Frequency frequency,
+    DateTime baseDate,
+  });
+}
+
+/// @nodoc
+class __$$RecurringAppointmentImplCopyWithImpl<$Res>
+    extends _$RecurringAppointmentCopyWithImpl<$Res, _$RecurringAppointmentImpl>
+    implements _$$RecurringAppointmentImplCopyWith<$Res> {
+  __$$RecurringAppointmentImplCopyWithImpl(
+    _$RecurringAppointmentImpl _value,
+    $Res Function(_$RecurringAppointmentImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of RecurringAppointment
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? patientId = null,
+    Object? providerId = null,
+    Object? concept = null,
+    Object? defaultAmount = null,
+    Object? frequency = null,
+    Object? baseDate = null,
+  }) {
+    return _then(
+      _$RecurringAppointmentImpl(
+        id:
+            null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                    as String,
+        patientId:
+            null == patientId
+                ? _value.patientId
+                : patientId // ignore: cast_nullable_to_non_nullable
+                    as String,
+        providerId:
+            null == providerId
+                ? _value.providerId
+                : providerId // ignore: cast_nullable_to_non_nullable
+                    as String,
+        concept:
+            null == concept
+                ? _value.concept
+                : concept // ignore: cast_nullable_to_non_nullable
+                    as String,
+        defaultAmount:
+            null == defaultAmount
+                ? _value.defaultAmount
+                : defaultAmount // ignore: cast_nullable_to_non_nullable
+                    as double,
+        frequency:
+            null == frequency
+                ? _value.frequency
+                : frequency // ignore: cast_nullable_to_non_nullable
+                    as Frequency,
+        baseDate:
+            null == baseDate
+                ? _value.baseDate
+                : baseDate // ignore: cast_nullable_to_non_nullable
+                    as DateTime,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$RecurringAppointmentImpl implements _RecurringAppointment {
+  const _$RecurringAppointmentImpl({
+    required this.id,
+    required this.patientId,
+    required this.providerId,
+    required this.concept,
+    required this.defaultAmount,
+    required this.frequency,
+    required this.baseDate,
+  });
+
+  @override
+  final String id;
+  @override
+  final String patientId;
+  @override
+  final String providerId;
+  @override
+  final String concept;
+  @override
+  final double defaultAmount;
+  @override
+  final Frequency frequency;
+  @override
+  final DateTime baseDate;
+
+  @override
+  String toString() {
+    return 'RecurringAppointment(id: $id, patientId: $patientId, providerId: $providerId, concept: $concept, defaultAmount: $defaultAmount, frequency: $frequency, baseDate: $baseDate)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$RecurringAppointmentImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.patientId, patientId) ||
+                other.patientId == patientId) &&
+            (identical(other.providerId, providerId) ||
+                other.providerId == providerId) &&
+            (identical(other.concept, concept) || other.concept == concept) &&
+            (identical(other.defaultAmount, defaultAmount) ||
+                other.defaultAmount == defaultAmount) &&
+            (identical(other.frequency, frequency) ||
+                other.frequency == frequency) &&
+            (identical(other.baseDate, baseDate) ||
+                other.baseDate == baseDate));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    patientId,
+    providerId,
+    concept,
+    defaultAmount,
+    frequency,
+    baseDate,
+  );
+
+  /// Create a copy of RecurringAppointment
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RecurringAppointmentImplCopyWith<_$RecurringAppointmentImpl>
+  get copyWith =>
+      __$$RecurringAppointmentImplCopyWithImpl<_$RecurringAppointmentImpl>(
+        this,
+        _$identity,
+      );
+}
+
+abstract class _RecurringAppointment implements RecurringAppointment {
+  const factory _RecurringAppointment({
+    required final String id,
+    required final String patientId,
+    required final String providerId,
+    required final String concept,
+    required final double defaultAmount,
+    required final Frequency frequency,
+    required final DateTime baseDate,
+  }) = _$RecurringAppointmentImpl;
+
+  @override
+  String get id;
+  @override
+  String get patientId;
+  @override
+  String get providerId;
+  @override
+  String get concept;
+  @override
+  double get defaultAmount;
+  @override
+  Frequency get frequency;
+  @override
+  DateTime get baseDate;
+
+  /// Create a copy of RecurringAppointment
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$RecurringAppointmentImplCopyWith<_$RecurringAppointmentImpl>
+  get copyWith => throw _privateConstructorUsedError;
+}

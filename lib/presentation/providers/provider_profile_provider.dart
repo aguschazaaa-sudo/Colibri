@@ -1,0 +1,22 @@
+import 'package:cobrador/domain/provider.dart';
+import 'package:cobrador/presentation/providers/repository_providers.dart';
+import 'package:cobrador/presentation/providers/use_case_providers.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart' hide Provider;
+
+part 'provider_profile_provider.g.dart';
+
+@riverpod
+class ProviderProfile extends _$ProviderProfile {
+  @override
+  Stream<Provider?> build(String providerId) {
+    final repository = ref.watch(providerRepositoryProvider);
+    return repository.watchProvider(providerId);
+  }
+
+  Future<void> updateProfile(Provider provider) async {
+    final useCase = ref.read(updateProviderProfileUseCaseProvider);
+    final result = await useCase.execute(provider);
+
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
+}

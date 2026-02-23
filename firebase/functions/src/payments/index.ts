@@ -1,0 +1,1 @@
+export { registerPayment } from "./registerPayment";

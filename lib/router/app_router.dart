@@ -1,16 +1,17 @@
+import 'package:cobrador/domain/patient.dart';
+import 'package:cobrador/presentation/auth/forgot_password_page.dart';
+import 'package:cobrador/presentation/auth/login_page.dart';
+import 'package:cobrador/presentation/auth/register_page.dart';
 import 'package:cobrador/presentation/finances/finances_page.dart';
+import 'package:cobrador/presentation/home/home_page.dart';
+import 'package:cobrador/presentation/landing/landing_page.dart';
+import 'package:cobrador/presentation/patients/patient_detail_page.dart';
 import 'package:cobrador/presentation/patients/patients_page.dart';
+import 'package:cobrador/providers/auth_providers.dart';
 import 'package:cobrador/presentation/reminders/reminders_page.dart';
 import 'package:cobrador/presentation/settings/settings_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import 'package:cobrador/providers/auth_providers.dart';
-import 'package:cobrador/presentation/landing/landing_page.dart';
-import 'package:cobrador/presentation/auth/login_page.dart';
-import 'package:cobrador/presentation/auth/register_page.dart';
-import 'package:cobrador/presentation/auth/forgot_password_page.dart';
-import 'package:cobrador/presentation/home/home_page.dart';
 
 /// Application router with auth-aware redirects.
 ///
@@ -61,6 +62,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patients',
         builder: (context, state) => const PatientsPage(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              // The extra object might be null if navigated via URL directly.
+              final patientObj = state.extra as Patient?;
+              return PatientDetailPage(patientId: id, patientObj: patientObj);
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/finances',

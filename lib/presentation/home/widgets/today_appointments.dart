@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
@@ -55,7 +57,15 @@ class TodayAppointmentsSection extends ConsumerWidget {
                     (_, __) => const SizedBox(width: AppSpacing.md),
                 itemBuilder: (context, index) {
                   final apt = todayAppointments[index];
-                  return _AppointmentCard(appointment: apt);
+                  return _AppointmentCard(appointment: apt)
+                      .animate(delay: (100 * index).ms)
+                      .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                      .slideX(
+                        begin: 0.05,
+                        end: 0,
+                        duration: 400.ms,
+                        curve: Curves.easeOut,
+                      );
                 },
               ),
             ),
@@ -258,6 +268,7 @@ class _AppointmentCard extends ConsumerWidget {
                           .registerPayment(payment);
 
                       if (context.mounted) {
+                        HapticFeedback.lightImpact();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Pago registrado')),
                         );

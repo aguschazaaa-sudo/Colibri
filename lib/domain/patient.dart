@@ -9,6 +9,7 @@ abstract class Patient with _$Patient {
     required String providerId,
     required String name,
     required String phoneNumber,
+    String? email,
     @Default(0.0) double totalDebt,
     @Default(0.0) double balance, // Saldo a favor
     required DateTime createdAt,

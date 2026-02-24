@@ -21,6 +21,7 @@ mixin _$Patient {
   String get providerId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get phoneNumber => throw _privateConstructorUsedError;
+  String? get email => throw _privateConstructorUsedError;
   double get totalDebt => throw _privateConstructorUsedError;
   double get balance => throw _privateConstructorUsedError; // Saldo a favor
   DateTime get createdAt => throw _privateConstructorUsedError;
@@ -41,6 +42,7 @@ abstract class $PatientCopyWith<$Res> {
     String providerId,
     String name,
     String phoneNumber,
+    String? email,
     double totalDebt,
     double balance,
     DateTime createdAt,
@@ -66,6 +68,7 @@ class _$PatientCopyWithImpl<$Res, $Val extends Patient>
     Object? providerId = null,
     Object? name = null,
     Object? phoneNumber = null,
+    Object? email = freezed,
     Object? totalDebt = null,
     Object? balance = null,
     Object? createdAt = null,
@@ -92,6 +95,11 @@ class _$PatientCopyWithImpl<$Res, $Val extends Patient>
                     ? _value.phoneNumber
                     : phoneNumber // ignore: cast_nullable_to_non_nullable
                         as String,
+            email:
+                freezed == email
+                    ? _value.email
+                    : email // ignore: cast_nullable_to_non_nullable
+                        as String?,
             totalDebt:
                 null == totalDebt
                     ? _value.totalDebt
@@ -126,6 +134,7 @@ abstract class _$$PatientImplCopyWith<$Res> implements $PatientCopyWith<$Res> {
     String providerId,
     String name,
     String phoneNumber,
+    String? email,
     double totalDebt,
     double balance,
     DateTime createdAt,
@@ -150,6 +159,7 @@ class __$$PatientImplCopyWithImpl<$Res>
     Object? providerId = null,
     Object? name = null,
     Object? phoneNumber = null,
+    Object? email = freezed,
     Object? totalDebt = null,
     Object? balance = null,
     Object? createdAt = null,
@@ -176,6 +186,11 @@ class __$$PatientImplCopyWithImpl<$Res>
                 ? _value.phoneNumber
                 : phoneNumber // ignore: cast_nullable_to_non_nullable
                     as String,
+        email:
+            freezed == email
+                ? _value.email
+                : email // ignore: cast_nullable_to_non_nullable
+                    as String?,
         totalDebt:
             null == totalDebt
                 ? _value.totalDebt
@@ -204,6 +219,7 @@ class _$PatientImpl implements _Patient {
     required this.providerId,
     required this.name,
     required this.phoneNumber,
+    this.email,
     this.totalDebt = 0.0,
     this.balance = 0.0,
     required this.createdAt,
@@ -218,6 +234,8 @@ class _$PatientImpl implements _Patient {
   @override
   final String phoneNumber;
   @override
+  final String? email;
+  @override
   @JsonKey()
   final double totalDebt;
   @override
@@ -229,7 +247,7 @@ class _$PatientImpl implements _Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, providerId: $providerId, name: $name, phoneNumber: $phoneNumber, totalDebt: $totalDebt, balance: $balance, createdAt: $createdAt)';
+    return 'Patient(id: $id, providerId: $providerId, name: $name, phoneNumber: $phoneNumber, email: $email, totalDebt: $totalDebt, balance: $balance, createdAt: $createdAt)';
   }
 
   @override
@@ -243,6 +261,7 @@ class _$PatientImpl implements _Patient {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.phoneNumber, phoneNumber) ||
                 other.phoneNumber == phoneNumber) &&
+            (identical(other.email, email) || other.email == email) &&
             (identical(other.totalDebt, totalDebt) ||
                 other.totalDebt == totalDebt) &&
             (identical(other.balance, balance) || other.balance == balance) &&
@@ -257,6 +276,7 @@ class _$PatientImpl implements _Patient {
     providerId,
     name,
     phoneNumber,
+    email,
     totalDebt,
     balance,
     createdAt,
@@ -277,6 +297,7 @@ abstract class _Patient implements Patient {
     required final String providerId,
     required final String name,
     required final String phoneNumber,
+    final String? email,
     final double totalDebt,
     final double balance,
     required final DateTime createdAt,
@@ -290,6 +311,8 @@ abstract class _Patient implements Patient {
   String get name;
   @override
   String get phoneNumber;
+  @override
+  String? get email;
   @override
   double get totalDebt;
   @override

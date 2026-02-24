@@ -6,7 +6,7 @@ part of 'firebase_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$firebaseFirestoreHash() => r'2e7f8bd195d91c027c5155f34b719187867bc113';
+String _$firebaseFirestoreHash() => r'da44e0544482927855093596d84cb41842b27214';
 
 /// See also [firebaseFirestore].
 @ProviderFor(firebaseFirestore)
@@ -24,7 +24,7 @@ final firebaseFirestoreProvider = Provider<FirebaseFirestore>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FirebaseFirestoreRef = ProviderRef<FirebaseFirestore>;
-String _$firebaseAuthHash() => r'46c40b7c5cf8ab936c0daa96a6af106bd2ae5d51';
+String _$firebaseAuthHash() => r'cb440927c3ab863427fd4b052a8ccba4c024c863';
 
 /// See also [firebaseAuth].
 @ProviderFor(firebaseAuth)

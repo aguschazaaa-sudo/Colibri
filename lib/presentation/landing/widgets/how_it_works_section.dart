@@ -55,9 +55,9 @@ class HowItWorksSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xxl),
               if (isWide)
-                _DesktopSteps(steps: _steps)
+                const _DesktopSteps(steps: _steps)
               else
-                _MobileSteps(steps: _steps),
+                const _MobileSteps(steps: _steps),
             ],
           ),
         ),

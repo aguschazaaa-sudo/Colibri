@@ -1,10 +1,12 @@
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/top_debtors_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class TopDebtorsSection extends ConsumerWidget {
   const TopDebtorsSection({super.key});
@@ -60,10 +62,20 @@ class TopDebtorsSection extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final debtor = debtors[index];
                 return _DebtorTile(
-                  name: debtor.name,
-                  debtAmount: currencyFormat.format(debtor.totalDebt),
-                  unpaidCount: 1,
-                );
+                      debtorId: debtor.id,
+                      name: debtor.name,
+                      debtAmount: currencyFormat.format(debtor.totalDebt),
+                      unpaidCount:
+                          1, // Temporarily hardcoded for UI mockup, real domain should provide this
+                    )
+                    .animate(delay: (100 * index).ms)
+                    .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                    .slideX(
+                      begin: 0.05,
+                      end: 0,
+                      duration: 400.ms,
+                      curve: Curves.easeOut,
+                    );
               },
             );
           },
@@ -77,6 +89,7 @@ class TopDebtorsSection extends ConsumerWidget {
                   itemCount: 3,
                   itemBuilder: (context, index) {
                     return const _DebtorTile(
+                      debtorId: '',
                       name: 'Cargando nombre...',
                       debtAmount: '\$ 00,000.00',
                       unpaidCount: 1,
@@ -107,11 +120,13 @@ class TopDebtorsSection extends ConsumerWidget {
 }
 
 class _DebtorTile extends StatelessWidget {
+  final String debtorId;
   final String name;
   final String debtAmount;
   final int unpaidCount;
 
   const _DebtorTile({
+    required this.debtorId,
     required this.name,
     required this.debtAmount,
     required this.unpaidCount,
@@ -166,9 +181,12 @@ class _DebtorTile extends StatelessWidget {
           ),
         ),
       ),
-      onTap: () {
-        // TODO: Navigate to patient's detailed page
-      },
+      onTap:
+          debtorId.isNotEmpty
+              ? () {
+                context.push('/patients/$debtorId');
+              }
+              : null,
     );
   }
 }

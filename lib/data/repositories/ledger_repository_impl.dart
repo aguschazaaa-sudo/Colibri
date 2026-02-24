@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cobrador/data/models/appointment_model.dart';
 import 'package:cobrador/data/models/payment_model.dart';
+import 'package:cobrador/data/models/recurring_appointment_model.dart';
 import 'package:cobrador/domain/appointment.dart';
 import 'package:cobrador/domain/failure.dart';
 import 'package:cobrador/domain/ledger_repository.dart';
@@ -54,8 +55,20 @@ class LedgerRepositoryImpl implements LedgerRepository {
     required String providerId,
     required String patientId,
   }) {
-    // TODO: Implement recurring appointments in Nivel 2.5
-    throw UnimplementedError();
+    return _firestore
+        .collection('recurring_appointments')
+        .where('providerId', isEqualTo: providerId)
+        .where('patientId', isEqualTo: patientId)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            final model = RecurringAppointmentModel.fromJson(
+              doc.data(),
+              doc.id,
+            );
+            return model.toEntity();
+          }).toList();
+        });
   }
 
   @override
@@ -87,9 +100,27 @@ class LedgerRepositoryImpl implements LedgerRepository {
   @override
   Future<Either<Failure, RecurringAppointment>> createRecurringAppointment(
     RecurringAppointment recurringAppointment,
-  ) {
-    // TODO: Implement recurring
-    throw UnimplementedError();
+  ) async {
+    try {
+      final docRef = _firestore.collection('recurring_appointments').doc();
+      final entityWithId = recurringAppointment.copyWith(id: docRef.id);
+      final model = RecurringAppointmentModel.fromEntity(entityWithId);
+
+      await docRef.set(model.toJson());
+
+      return Right(model.toEntity());
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return const Left(
+          Failure.serverError(
+            'No tienes permisos para crear turnos recurrentes.',
+          ),
+        );
+      }
+      return Left(Failure.serverError(e.message ?? 'Unknown Firebase Error'));
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
   }
 
   @override
@@ -97,9 +128,22 @@ class LedgerRepositoryImpl implements LedgerRepository {
     String providerId,
     String patientId,
     String recurringAppointmentId,
-  ) {
-    // TODO: implement deleteRecurringAppointment
-    throw UnimplementedError();
+  ) async {
+    try {
+      await _firestore
+          .collection('recurring_appointments')
+          .doc(recurringAppointmentId)
+          .delete();
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(
+        Failure.serverError(
+          e.message ?? 'Error deleting recurring appointment',
+        ),
+      );
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
   }
 
   @override

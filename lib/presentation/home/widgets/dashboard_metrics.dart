@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 
@@ -13,22 +14,38 @@ class DashboardMetrics extends StatelessWidget {
         children: [
           Expanded(
             child: _MetricCard(
-              title: 'A Cobrar',
-              amount: '\$45.000',
-              icon: Icons.trending_up,
-              color: Theme.of(context).colorScheme.error,
-              isAlert: true,
-            ),
+                  title: 'A Cobrar',
+                  amount: '\$45.000',
+                  icon: Icons.trending_up,
+                  color: Theme.of(context).colorScheme.error,
+                  isAlert: true,
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                .slideY(
+                  begin: 0.1,
+                  end: 0,
+                  duration: 400.ms,
+                  curve: Curves.easeOut,
+                ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: _MetricCard(
-              title: 'Ingresado',
-              amount: '\$120.000',
-              icon: Icons.check_circle_outline,
-              color: Theme.of(context).colorScheme.primary,
-              isAlert: false,
-            ),
+                  title: 'Ingresado',
+                  amount: '\$120.000',
+                  icon: Icons.check_circle_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                  isAlert: false,
+                )
+                .animate(delay: 100.ms)
+                .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                .slideY(
+                  begin: 0.1,
+                  end: 0,
+                  duration: 400.ms,
+                  curve: Curves.easeOut,
+                ),
           ),
         ],
       ),

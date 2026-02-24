@@ -108,5 +108,5 @@ cobrador/
 ---
 
 <p align="center">
-  <i>Construido con ❤️ para devolverle el control financiero a los héroes de la salud.</i>
+  <i>Desarrollado con ❤️ y mucho ☕ por Agustín Chazarreta.</i>
 </p>

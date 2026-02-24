@@ -48,9 +48,9 @@ class FeaturesSection extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xxl),
             if (isWide)
-              _DesktopGrid(features: _features)
+              const _DesktopGrid(features: _features)
             else
-              _MobileList(features: _features),
+              const _MobileList(features: _features),
           ],
         ),
       ),

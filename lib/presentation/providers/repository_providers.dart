@@ -9,6 +9,7 @@ import 'package:cobrador/domain/communication_log_repository.dart';
 import 'package:cobrador/domain/ledger_repository.dart';
 import 'package:cobrador/domain/patient_repository.dart';
 import 'package:cobrador/domain/provider_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'firebase_providers.dart';
@@ -16,34 +17,32 @@ import 'firebase_providers.dart';
 part 'repository_providers.g.dart';
 
 @Riverpod(keepAlive: true)
-AuthRepository authRepository(AuthRepositoryRef ref) {
+AuthRepository authRepository(Ref ref) {
   final firebaseAuthInstance = ref.watch(firebaseAuthProvider);
   final dataSource = FirebaseAuthDataSource(firebaseAuth: firebaseAuthInstance);
   return AuthRepositoryImpl(dataSource);
 }
 
 @Riverpod(keepAlive: true)
-LedgerRepository ledgerRepository(LedgerRepositoryRef ref) {
+LedgerRepository ledgerRepository(Ref ref) {
   final firestore = ref.watch(firebaseFirestoreProvider);
   return LedgerRepositoryImpl(firestore);
 }
 
 @Riverpod(keepAlive: true)
-PatientRepository patientRepository(PatientRepositoryRef ref) {
+PatientRepository patientRepository(Ref ref) {
   final firestore = ref.watch(firebaseFirestoreProvider);
   return PatientRepositoryImpl(firestore);
 }
 
 @Riverpod(keepAlive: true)
-ProviderRepository providerRepository(ProviderRepositoryRef ref) {
+ProviderRepository providerRepository(Ref ref) {
   final firestore = ref.watch(firebaseFirestoreProvider);
   return ProviderRepositoryImpl(firestore);
 }
 
 @Riverpod(keepAlive: true)
-CommunicationLogRepository communicationLogRepository(
-  CommunicationLogRepositoryRef ref,
-) {
+CommunicationLogRepository communicationLogRepository(Ref ref) {
   final firestore = ref.watch(firebaseFirestoreProvider);
   return CommunicationLogRepositoryImpl(firestore);
 }

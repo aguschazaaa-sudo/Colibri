@@ -6,7 +6,7 @@ part of 'ledger_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$patientPaymentsHash() => r'991c0ba2d1f1d6b70e880a35f558ffc7d84247ed';
+String _$patientPaymentsHash() => r'ca418cd555624819c00a86355d2632c525096e82';
 
 /// Copied from Dart SDK
 class _SystemHash {

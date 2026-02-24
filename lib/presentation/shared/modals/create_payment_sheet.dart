@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 
 class CreatePaymentSheet extends ConsumerStatefulWidget {
-  const CreatePaymentSheet({super.key});
+  final String? initialPatientId;
+
+  const CreatePaymentSheet({super.key, this.initialPatientId});
 
   @override
   ConsumerState<CreatePaymentSheet> createState() => _CreatePaymentSheetState();
@@ -15,6 +18,12 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedPatientId;
   double _amount = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPatientId = widget.initialPatientId;
+  }
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate() && _selectedPatientId != null) {
@@ -42,6 +51,7 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
             .registerPayment(payment);
 
         if (mounted) {
+          HapticFeedback.mediumImpact();
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Pago registrado y distribuido.')),
@@ -122,7 +132,9 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
                 labelText: 'Monto recibido',
                 prefixIcon: Icon(Icons.attach_money_rounded),
               ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               validator: (v) {

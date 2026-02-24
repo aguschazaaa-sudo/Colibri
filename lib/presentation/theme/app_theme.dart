@@ -196,7 +196,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: error),
         ),
-        labelStyle: TextStyle(color: onSurfaceVariant),
+        labelStyle: const TextStyle(color: onSurfaceVariant),
       ),
     );
   }

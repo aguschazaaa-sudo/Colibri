@@ -6,7 +6,7 @@ part of 'repository_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authRepositoryHash() => r'0398610cb9d626f7ab5b42e6df8717a11839c171';
+String _$authRepositoryHash() => r'822fd4fc0f8745fa006dd5c81a0d7e7aad0bb0d9';
 
 /// See also [authRepository].
 @ProviderFor(authRepository)
@@ -24,7 +24,7 @@ final authRepositoryProvider = Provider<AuthRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthRepositoryRef = ProviderRef<AuthRepository>;
-String _$ledgerRepositoryHash() => r'de3156017ad5cd92be8498fc6f4534ef8cd5cca2';
+String _$ledgerRepositoryHash() => r'7804c0a93a2568cf9b0f8125a5ec3df6e7d15a28';
 
 /// See also [ledgerRepository].
 @ProviderFor(ledgerRepository)
@@ -42,7 +42,7 @@ final ledgerRepositoryProvider = Provider<LedgerRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LedgerRepositoryRef = ProviderRef<LedgerRepository>;
-String _$patientRepositoryHash() => r'1c3844fb0cb5a1231e94fbda64cb677b0824d5be';
+String _$patientRepositoryHash() => r'4c2d1eb5fce533c263349b763eec62312db5f6f3';
 
 /// See also [patientRepository].
 @ProviderFor(patientRepository)
@@ -61,7 +61,7 @@ final patientRepositoryProvider = Provider<PatientRepository>.internal(
 // ignore: unused_element
 typedef PatientRepositoryRef = ProviderRef<PatientRepository>;
 String _$providerRepositoryHash() =>
-    r'0be505d75efac1edb59c557a3ba30f09b4181ea4';
+    r'8390fe3b113db6509ff85e7d5be3348d28af1444';
 
 /// See also [providerRepository].
 @ProviderFor(providerRepository)
@@ -80,7 +80,7 @@ final providerRepositoryProvider = Provider<ProviderRepository>.internal(
 // ignore: unused_element
 typedef ProviderRepositoryRef = ProviderRef<ProviderRepository>;
 String _$communicationLogRepositoryHash() =>
-    r'8fee2f0e83028c096b8935d4168b47dac0473532';
+    r'2c918727cb26afdca3dfcd9c3c04d63d5b62beaa';
 
 /// See also [communicationLogRepository].
 @ProviderFor(communicationLogRepository)

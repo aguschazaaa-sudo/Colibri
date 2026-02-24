@@ -1,11 +1,12 @@
 import 'package:cobrador/domain/patient.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'top_debtors_provider.g.dart';
 
 @riverpod
-Future<List<Patient>> topDebtors(TopDebtorsRef ref, String providerId) async {
+Future<List<Patient>> topDebtors(Ref ref, String providerId) async {
   // Watch the asynchronous stream of patients
   final patients = await ref.watch(patientsProvider(providerId).future);
 

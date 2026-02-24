@@ -4,7 +4,7 @@ Este documento define la hoja de ruta actual del proyecto `Cobrador`, estructura
 
 ## 1. Capa Backend & Cloud (Firebase / TypeScript)
 
-_La base absoluta donde viven las reglas duras de seguridad y lógica automatizada._
+_Lo que el usuario ve y toca. El punto de entrada a todas las funcionalidades._
 
 - [ ] **Firestore Security Rules:** Definir y desplegar en `firestore_rules/` reglas estrictas basadas en `providerId` para garantizar el multi-tenancy y aislamiento de datos.
 - [ ] **Motor de WhatsApp (Cloud Function):** Desarrollar función programada (Cron Job) que busque saldos mayores a 0 e interactúe con la API de WhatsApp para enviar recordatorios.

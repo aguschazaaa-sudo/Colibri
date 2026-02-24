@@ -50,7 +50,7 @@ class Ledger extends _$Ledger {
 /// Provider extra para observar solo los pagos de un paciente
 @riverpod
 Stream<List<Payment>> patientPayments(
-  PatientPaymentsRef ref, {
+  Ref ref, {
   required String providerId,
   required String patientId,
 }) {

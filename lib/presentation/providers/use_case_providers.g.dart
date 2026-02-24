@@ -7,7 +7,7 @@ part of 'use_case_providers.dart';
 // **************************************************************************
 
 String _$applyPaymentUseCaseHash() =>
-    r'8f0f4020cb0424caab21df5055fafb961355970c';
+    r'312704286cd36009e57327969017aee94dcfd938';
 
 /// See also [applyPaymentUseCase].
 @ProviderFor(applyPaymentUseCase)
@@ -26,7 +26,7 @@ final applyPaymentUseCaseProvider = Provider<ApplyPaymentUseCase>.internal(
 // ignore: unused_element
 typedef ApplyPaymentUseCaseRef = ProviderRef<ApplyPaymentUseCase>;
 String _$calculateInterestUseCaseHash() =>
-    r'b7dab9f2a4729f450ac5df6e9b53c96a26224376';
+    r'e080cbd7f0e1e7f0c7bdd43004f216a0b1881579';
 
 /// See also [calculateInterestUseCase].
 @ProviderFor(calculateInterestUseCase)
@@ -46,7 +46,7 @@ final calculateInterestUseCaseProvider =
 // ignore: unused_element
 typedef CalculateInterestUseCaseRef = ProviderRef<CalculateInterestUseCase>;
 String _$createPatientUseCaseHash() =>
-    r'3c6e5de058cdc8bb821fbd661ffa8c02c790326c';
+    r'de883d38424b4358cbb89dab148b5c7c9eae2573';
 
 /// See also [createPatientUseCase].
 @ProviderFor(createPatientUseCase)
@@ -65,7 +65,7 @@ final createPatientUseCaseProvider = Provider<CreatePatientUseCase>.internal(
 // ignore: unused_element
 typedef CreatePatientUseCaseRef = ProviderRef<CreatePatientUseCase>;
 String _$updatePatientUseCaseHash() =>
-    r'e70bf540e88a55ddd106ff155cb3b4458d21479a';
+    r'16fc4b169ce48ef2b1fd5608549cd5b923e7681f';
 
 /// See also [updatePatientUseCase].
 @ProviderFor(updatePatientUseCase)
@@ -84,7 +84,7 @@ final updatePatientUseCaseProvider = Provider<UpdatePatientUseCase>.internal(
 // ignore: unused_element
 typedef UpdatePatientUseCaseRef = ProviderRef<UpdatePatientUseCase>;
 String _$updateProviderProfileUseCaseHash() =>
-    r'f8780777f41d33c306c608dbfccc0463eb1011d5';
+    r'894604426335ffb2385475b5e8ef85ace267ff49';
 
 /// See also [updateProviderProfileUseCase].
 @ProviderFor(updateProviderProfileUseCase)
@@ -105,7 +105,7 @@ final updateProviderProfileUseCaseProvider =
 typedef UpdateProviderProfileUseCaseRef =
     ProviderRef<UpdateProviderProfileUseCase>;
 String _$triggerWhatsAppRemindersUseCaseHash() =>
-    r'9a2901c1ce024655b6b84778455af56280c14023';
+    r'be0552d729969a06ec0be5c6c86308907edcd4f7';
 
 /// See also [triggerWhatsAppRemindersUseCase].
 @ProviderFor(triggerWhatsAppRemindersUseCase)

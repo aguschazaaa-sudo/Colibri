@@ -7,6 +7,11 @@ import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
 import 'package:cobrador/presentation/home/widgets/today_appointments.dart';
 import 'package:cobrador/presentation/home/widgets/top_debtors.dart';
 import 'package:cobrador/presentation/home/widgets/home_action_fab.dart';
+import 'package:cobrador/presentation/home/widgets/universal_search_delegate.dart';
+import 'package:cobrador/presentation/providers/firebase_providers.dart';
+import 'package:cobrador/presentation/providers/patient_provider.dart';
+import 'package:cobrador/presentation/providers/ledger_provider.dart';
+import 'package:cobrador/presentation/providers/top_debtors_provider.dart';
 
 /// Home page — shell for the authenticated experience.
 ///
@@ -25,25 +30,40 @@ class HomePage extends ConsumerWidget {
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Buscar paciente',
             onPressed: () {
-              // TODO: Open universal search
+              showSearch(
+                context: context,
+                delegate: UniversalSearchDelegate(ref),
+              );
             },
           ),
         ],
       ),
       drawer: const HomeDrawer(),
-      body: _HomeBody(),
+      body: const _HomeBody(),
       floatingActionButton: const HomeActionFab(),
     );
   }
 }
 
-class _HomeBody extends StatelessWidget {
+class _HomeBody extends ConsumerWidget {
+  const _HomeBody();
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return RefreshIndicator(
       onRefresh: () async {
-        // TODO: Refresh dashboard data
-        await Future.delayed(const Duration(seconds: 1));
+        final auth = ref.read(firebaseAuthProvider);
+        final providerId = auth.currentUser?.uid;
+
+        if (providerId != null) {
+          // Hardcoding prov_1 inside ledgerProvider just as a temp until real auth provides it via UI
+          ref.invalidate(ledgerProvider(providerId: 'prov_1', patientId: ''));
+          ref.invalidate(topDebtorsProvider(providerId));
+          ref.invalidate(patientsProvider(providerId));
+        }
+
+        // Small delay to let the UI show the refresh animation
+        await Future.delayed(const Duration(milliseconds: 500));
       },
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),

@@ -6,7 +6,7 @@ part of 'top_debtors_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$topDebtorsHash() => r'62045e6c9b87e6c4b67cb9dbf7d38d6f4724fea0';
+String _$topDebtorsHash() => r'6d9be9f5bab5bcd1ec76621cd414675d24613065';
 
 /// Copied from Dart SDK
 class _SystemHash {

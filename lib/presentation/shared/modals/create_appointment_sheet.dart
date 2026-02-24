@@ -3,10 +3,13 @@ import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CreateAppointmentSheet extends ConsumerStatefulWidget {
-  const CreateAppointmentSheet({super.key});
+  final String? initialPatientId;
+
+  const CreateAppointmentSheet({super.key, this.initialPatientId});
 
   @override
   ConsumerState<CreateAppointmentSheet> createState() =>
@@ -20,6 +23,12 @@ class _CreateAppointmentSheetState
   String _concept = '';
   double _amount = 0.0;
 
+  @override
+  void initState() {
+    super.initState();
+    _selectedPatientId = widget.initialPatientId;
+  }
+
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -29,8 +38,9 @@ class _CreateAppointmentSheetState
         final providerId = auth.currentUser?.uid;
         if (providerId == null) throw Exception('No user logged in');
 
-        if (_selectedPatientId == null)
+        if (_selectedPatientId == null) {
           throw Exception('Paciente no seleccionado');
+        }
 
         final newAppointment = Appointment(
           id: '', // Auto-generated
@@ -53,6 +63,7 @@ class _CreateAppointmentSheetState
             .createAppointment(newAppointment);
 
         if (mounted) {
+          HapticFeedback.mediumImpact();
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Turno agendado exitosamente')),
@@ -141,7 +152,9 @@ class _CreateAppointmentSheetState
                 labelText: 'Monto a cobrar',
                 prefixIcon: Icon(Icons.attach_money_rounded),
               ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               validator: (v) {

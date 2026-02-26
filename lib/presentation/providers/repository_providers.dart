@@ -26,7 +26,8 @@ AuthRepository authRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 LedgerRepository ledgerRepository(Ref ref) {
   final firestore = ref.watch(firebaseFirestoreProvider);
-  return LedgerRepositoryImpl(firestore);
+  final functions = ref.watch(firebaseFunctionsProvider);
+  return LedgerRepositoryImpl(firestore, functions);
 }
 
 @Riverpod(keepAlive: true)

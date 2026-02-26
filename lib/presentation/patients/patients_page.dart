@@ -8,6 +8,9 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'widgets/patient_list_states.dart';
 import 'widgets/patient_list_tile.dart';
 
+import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
+import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
+
 class PatientsPage extends ConsumerWidget {
   const PatientsPage({super.key});
 
@@ -25,8 +28,9 @@ class PatientsPage extends ConsumerWidget {
 
     final patientsAsync = ref.watch(patientsProvider(providerId));
 
-    return Scaffold(
+    return AdaptiveScaffold(
       appBar: _PatientAppBar(),
+      drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
       body: patientsAsync.when(
         data: (patients) {
           if (patients.isEmpty) {

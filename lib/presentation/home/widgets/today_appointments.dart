@@ -7,6 +7,8 @@ import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:cobrador/domain/appointment.dart';
 import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
+import 'package:cobrador/presentation/providers/firebase_providers.dart';
+import 'package:cobrador/presentation/providers/patient_provider.dart';
 
 class TodayAppointmentsSection extends ConsumerWidget {
   const TodayAppointmentsSection({super.key});
@@ -18,8 +20,11 @@ class TodayAppointmentsSection extends ConsumerWidget {
 
     // We'll watch all appointments. Since we don't have a specific 'today' provider yet,
     // we fetch them and filter them client side, or rely on a future specific provider.
+    final auth = ref.watch(firebaseAuthProvider);
+    final providerId = auth.currentUser?.uid ?? '';
+
     final appointmentsAsync = ref.watch(
-      ledgerProvider(providerId: 'prov_1', patientId: ''),
+      ledgerProvider(providerId: providerId, patientId: ''),
     );
 
     return appointmentsAsync.when(
@@ -178,6 +183,19 @@ class _AppointmentCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final isSkeleton = appointment.providerId.isEmpty;
+    final patientsAsync =
+        isSkeleton ? null : ref.watch(patientsProvider(appointment.providerId));
+
+    final patientName =
+        isSkeleton
+            ? appointment.patientId
+            : (patientsAsync?.valueOrNull
+                    ?.where((p) => p.id == appointment.patientId)
+                    .firstOrNull
+                    ?.name ??
+                'Cargando...');
+
     final isPaid = appointment.status == AppointmentStatus.liquidated;
     final time =
         '${appointment.date.hour.toString().padLeft(2, '0')}:${appointment.date.minute.toString().padLeft(2, '0')}';
@@ -219,8 +237,7 @@ class _AppointmentCard extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            appointment
-                .patientId, // In the real app, we use PatientProvider to read Name
+            patientName,
             style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

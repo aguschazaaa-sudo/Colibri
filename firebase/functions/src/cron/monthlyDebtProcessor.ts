@@ -11,19 +11,19 @@ const db = admin.firestore();
  * 3. Updates Patient's totalDebt.
  * 4. Triggers WhatsApp reminder logic.
  */
-export const monthlyDebtProcessor = functions.pubsub.schedule("0 15 28 * *")
-  .timeZone("America/Argentina/Buenos_Aires") // Configurable, assuming local time
+export const monthlyDebtProcessor = functions
+  .runWith({ maxInstances: 10 })
+  .pubsub.schedule("0 15 28 * *")
+  .timeZone("America/Argentina/Buenos_Aires")
   .onRun(async (context) => {
     console.log("Started monthlyDebtProcessor");
 
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    // Ensure we handle changes in batches and use transactions/batches where appropriate.
-    // However, since we process patients, we can process patient by patient.
-    
-    // Get all patients that have debt
-    const patientsWithDebtSnapshot = await db.collection("patients")
+    // Use collectionGroup("patients") to find all patients across all providers
+    // that currently have debt, without needing to scan each provider individually.
+    const patientsWithDebtSnapshot = await db.collectionGroup("patients")
       .where("totalDebt", ">", 0)
       .get();
       
@@ -42,9 +42,10 @@ export const monthlyDebtProcessor = functions.pubsub.schedule("0 15 28 * *")
       const patientData = patientDoc.data();
       const providerId = patientData.providerId;
 
-      // Find unpaid appointments for this patient
-      const unpaidAppointmentsSnapshot = await db.collection("appointments")
-        .where("patientId", "==", patientId)
+      // Use patientDoc.ref to build the subcollection path — it already contains
+      // the correct path: providers/{providerId}/patients/{patientId}
+      const unpaidAppointmentsSnapshot = await patientDoc.ref
+        .collection("appointments")
         .where("status", "==", "unpaid")
         .get();
 
@@ -82,9 +83,7 @@ export const monthlyDebtProcessor = functions.pubsub.schedule("0 15 28 * *")
         updatesCount++;
       }
 
-      // TODO: Queue WhatsApp Reminder 
-      // This is a skeleton for the WhatsApp logic
-      // e.g., await queueWhatsAppReminder(providerId, patientId, newTotalDebt);
+      // Queue WhatsApp Reminder
       const finalDebtForMessage = patientData.totalDebt + totalInterestAddedToPatient;
       queueWhatsAppReminder(providerId, patientId, finalDebtForMessage, patientData.name);
     }
@@ -92,7 +91,7 @@ export const monthlyDebtProcessor = functions.pubsub.schedule("0 15 28 * *")
     // Commit all updates
     if (updatesCount > 0) {
       console.log(`Committing ${updatesCount} updates (Interests added)`);
-      // Warning: Firestore batches have a limit of 500 operations. 
+      // Warning: Firestore batches have a limit of 500 operations.
       // For large scale, we should commit every 500 ops.
       await batch.commit();
     }
@@ -105,17 +104,14 @@ export const monthlyDebtProcessor = functions.pubsub.schedule("0 15 28 * *")
  * Skeleton function to handle WhatsApp reminder queues
  */
 async function queueWhatsAppReminder(providerId: string, patientId: string, totalDebt: number, patientName: string) {
-    // TODO: Implement actual HTTP call to Meta WhatsApp API
     console.log(`[WhatsApp Engine] Enqueuing reminder for Patient ${patientName} (${patientId}). Debt: $${totalDebt}`);
     
-    // Rules specify writing to communications subcollection/root collection
     await db.collection("communications").add({
         providerId: providerId,
         patientId: patientId,
         type: "whatsapp_reminder",
-        status: "pending", // Could be dispatched by another worker
+        status: "pending",
         totalDebtAtThatTime: totalDebt,
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        // messageId: ...
     });
 }

@@ -14,7 +14,9 @@ const CreateRecurringRequestSchema = z.object({
   occurrences: z.number().min(1).max(52).default(12), // How many to generate ahead
 });
 
-export const createRecurring = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
+export const createRecurring = functions
+  .runWith({ maxInstances: 10 })
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "El usuario no está autenticado.");
   }
@@ -28,10 +30,16 @@ export const createRecurring = functions.https.onCall(async (data: any, context:
   const payload = validationResult.data;
   const baseDateObj = new Date(payload.baseDate);
 
+  // Helper: base path for the patient document
+  const patientRef = db
+    .collection("providers")
+    .doc(providerId)
+    .collection("patients")
+    .doc(payload.patientId);
+
   try {
     return await db.runTransaction(async (transaction) => {
       // 1. Validate Patient
-      const patientRef = db.collection("patients").doc(payload.patientId);
       const patientDoc = await transaction.get(patientRef);
 
       if (!patientDoc.exists || patientDoc.data()?.providerId !== providerId) {
@@ -39,7 +47,9 @@ export const createRecurring = functions.https.onCall(async (data: any, context:
       }
 
       // 2. Create the recurring template
-      const recurringRef = db.collection("recurring_appointments").doc();
+      const recurringRef = patientRef
+        .collection("recurring_appointments")
+        .doc();
       transaction.set(recurringRef, {
         patientId: payload.patientId,
         providerId: providerId,
@@ -56,7 +66,7 @@ export const createRecurring = functions.https.onCall(async (data: any, context:
       let currentDate = new Date(baseDateObj);
 
       for (let i = 0; i < payload.occurrences; i++) {
-        const appointmentRef = db.collection("appointments").doc();
+        const appointmentRef = patientRef.collection("appointments").doc();
         batchCreates.push(appointmentRef);
         
         transaction.set(appointmentRef, {
@@ -87,5 +97,3 @@ export const createRecurring = functions.https.onCall(async (data: any, context:
     throw new functions.https.HttpsError("internal", "Error generando los turnos recurrentes.");
   }
 });
-
-

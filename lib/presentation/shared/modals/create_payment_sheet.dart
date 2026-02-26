@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
+import 'package:cobrador/presentation/providers/firebase_providers.dart';
 
 class CreatePaymentSheet extends ConsumerStatefulWidget {
   final String? initialPatientId;
@@ -18,6 +19,7 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedPatientId;
   double _amount = 0.0;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -26,15 +28,21 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     if (_formKey.currentState!.validate() && _selectedPatientId != null) {
+      setState(() => _isSubmitting = true);
       _formKey.currentState!.save();
 
       try {
+        final auth = ref.read(firebaseAuthProvider);
+        final providerId = auth.currentUser?.uid ?? '';
+
         // Create the Domain Payment object
         final payment = Payment(
           id: '', // Empty or generate UUID, let backend assign real ID
           patientId: _selectedPatientId!,
-          providerId: 'prov_1', // Temporarily hardcoded
+          providerId: providerId,
           amount: _amount,
           date: DateTime.now(),
         );
@@ -44,7 +52,7 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
         await ref
             .read(
               ledgerProvider(
-                providerId: 'prov_1',
+                providerId: providerId,
                 patientId: _selectedPatientId!,
               ).notifier,
             )
@@ -59,6 +67,7 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
         }
       } catch (e) {
         if (mounted) {
+          setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error guardando el pago: $e'),
@@ -90,42 +99,51 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
           children: [
             Text('Añadir Pago', style: textTheme.titleLarge),
             const SizedBox(height: 16),
-            ref
-                .watch(patientsProvider('prov_1'))
-                .when(
-                  // Using hardcoded 'prov_1' for now until Auth Provider exists
-                  data: (patients) {
-                    if (patients.isEmpty) {
-                      return const Text(
-                        'Primero debes registrar un paciente.',
-                        style: TextStyle(color: Colors.red),
-                      );
-                    }
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Paciente',
-                        prefixIcon: Icon(Icons.person_outline_rounded),
-                      ),
-                      items:
-                          patients
-                              .map(
-                                (p) => DropdownMenuItem(
-                                  value: p.id,
-                                  child: Text(
-                                    '${p.name} (Deuda: \$${p.totalDebt.toStringAsFixed(0)})',
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (v) => setState(() => _selectedPatientId = v),
-                      validator:
-                          (v) => v == null ? 'Seleccione un paciente' : null,
+            Consumer(
+              builder: (context, ref, _) {
+                final auth = ref.watch(firebaseAuthProvider);
+                final providerId = auth.currentUser?.uid ?? '';
+
+                return ref
+                    .watch(patientsProvider(providerId))
+                    .when(
+                      data: (patients) {
+                        if (patients.isEmpty) {
+                          return const Text(
+                            'Primero debes registrar un paciente.',
+                            style: TextStyle(color: Colors.red),
+                          );
+                        }
+                        return DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'Paciente',
+                            prefixIcon: Icon(Icons.person_outline_rounded),
+                          ),
+                          items:
+                              patients
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p.id,
+                                      child: Text(
+                                        '${p.name} (Deuda: \$${p.totalDebt.toStringAsFixed(0)})',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged:
+                              (v) => setState(() => _selectedPatientId = v),
+                          validator:
+                              (v) =>
+                                  v == null ? 'Seleccione un paciente' : null,
+                        );
+                      },
+                      loading:
+                          () =>
+                              const Center(child: CircularProgressIndicator()),
+                      error: (err, _) => Text('Error: $err'),
                     );
-                  },
-                  loading:
-                      () => const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => Text('Error: $err'),
-                ),
+              },
+            ),
             const SizedBox(height: 16),
             TextFormField(
               decoration: const InputDecoration(
@@ -146,8 +164,15 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _submit,
-              child: const Text('Registrar Pago'),
+              onPressed: _isSubmitting ? null : _submit,
+              child:
+                  _isSubmitting
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Text('Registrar Pago'),
             ),
           ],
         ),

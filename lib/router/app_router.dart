@@ -31,6 +31,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       const authPaths = ['/login', '/register', '/forgot-password'];
       final isOnAuthPage = authPaths.contains(currentPath);
+      final isLandingPage = currentPath == '/';
       final isOnHomePage =
           currentPath.startsWith('/home') ||
           currentPath.startsWith('/patients') ||
@@ -38,11 +39,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           currentPath.startsWith('/reminders') ||
           currentPath.startsWith('/settings');
 
-      // If logged in and trying to access auth pages → go to /home
-      if (isLoggedIn && isOnAuthPage) return '/home';
+      // If logged in and trying to access auth pages or landing page → go to /home
+      if (isLoggedIn && (isOnAuthPage || isLandingPage)) return '/home';
 
       // If not logged in and trying to access protected pages → go to /login
-      if (!isLoggedIn && isOnHomePage) return '/login';
+      if (!isLoggedIn && isOnHomePage) return '/';
 
       // No redirect
       return null;

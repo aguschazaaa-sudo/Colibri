@@ -13,6 +13,8 @@ import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 import 'package:cobrador/presentation/providers/top_debtors_provider.dart';
 
+import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
+
 /// Home page — shell for the authenticated experience.
 ///
 /// Shows dashboard metrics, today's appointments, and top debtors.
@@ -21,7 +23,7 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
+    return AdaptiveScaffold(
       appBar: AppBar(
         title: const Text('Colibrí'),
         centerTitle: true,
@@ -38,7 +40,7 @@ class HomePage extends ConsumerWidget {
           ),
         ],
       ),
-      drawer: const HomeDrawer(),
+      drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
       body: const _HomeBody(),
       floatingActionButton: const HomeActionFab(),
     );
@@ -56,8 +58,7 @@ class _HomeBody extends ConsumerWidget {
         final providerId = auth.currentUser?.uid;
 
         if (providerId != null) {
-          // Hardcoding prov_1 inside ledgerProvider just as a temp until real auth provides it via UI
-          ref.invalidate(ledgerProvider(providerId: 'prov_1', patientId: ''));
+          ref.invalidate(ledgerProvider(providerId: providerId, patientId: ''));
           ref.invalidate(topDebtorsProvider(providerId));
           ref.invalidate(patientsProvider(providerId));
         }

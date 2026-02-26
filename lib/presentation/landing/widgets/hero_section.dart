@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:go_router/go_router.dart';
 
 /// Hero section — the first visual impact of the landing page.
 ///
@@ -112,7 +113,7 @@ class _HeroCopy extends StatelessWidget {
 
         // ── CTA ──
         FilledButton.icon(
-          onPressed: () {},
+          onPressed: () => context.go('/register'),
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.secondary,
             foregroundColor: colorScheme.onSecondary,

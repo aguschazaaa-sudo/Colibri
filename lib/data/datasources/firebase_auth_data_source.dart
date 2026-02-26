@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:fpdart/fpdart.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -11,19 +12,19 @@ import 'package:cobrador/data/models/provider_model.dart';
 /// [FirebaseAuthException] errors are mapped to [Failure] objects.
 class FirebaseAuthDataSource {
   final firebase_auth.FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
 
-  FirebaseAuthDataSource({firebase_auth.FirebaseAuth? firebaseAuth})
-    : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance;
+  FirebaseAuthDataSource({
+    firebase_auth.FirebaseAuth? firebaseAuth,
+    FirebaseFirestore? firestore,
+  }) : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Stream of auth state mapped to [ProviderModel].
   Stream<ProviderModel?> get authStateChanges {
-    return _firebaseAuth.authStateChanges().map((user) {
+    return _firebaseAuth.authStateChanges().asyncMap((user) async {
       if (user == null) return null;
-      return ProviderModel.fromFirebaseUser(
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      );
+      return await _fetchProviderFromFirestore(user);
     });
   }
 
@@ -48,7 +49,8 @@ class FirebaseAuthDataSource {
         email: email,
         password: password,
       );
-      return Right(_userToModel(credential.user!));
+      final model = await _fetchProviderFromFirestore(credential.user!);
+      return Right(model);
     } on firebase_auth.FirebaseAuthException catch (e) {
       return Left(_mapAuthException(e));
     }
@@ -68,7 +70,15 @@ class FirebaseAuthDataSource {
       await credential.user!.updateDisplayName(name);
       await credential.user!.reload();
       final updatedUser = _firebaseAuth.currentUser!;
-      return Right(_userToModel(updatedUser));
+
+      // The CF onCreate fires BEFORE updateDisplayName, so name is empty.
+      // Patch the Firestore doc with the correct name from the client.
+      await _firestore.collection('providers').doc(updatedUser.uid).set({
+        'name': name,
+      }, SetOptions(merge: true));
+
+      final model = await _fetchProviderFromFirestore(updatedUser);
+      return Right(model);
     } on firebase_auth.FirebaseAuthException catch (e) {
       return Left(_mapAuthException(e));
     }
@@ -93,7 +103,8 @@ class FirebaseAuthDataSource {
       final userCredential = await _firebaseAuth.signInWithCredential(
         credential,
       );
-      return Right(_userToModel(userCredential.user!));
+      final model = await _fetchProviderFromFirestore(userCredential.user!);
+      return Right(model);
     } on firebase_auth.FirebaseAuthException catch (e) {
       return Left(_mapAuthException(e));
     } catch (e) {
@@ -122,6 +133,31 @@ class FirebaseAuthDataSource {
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────
+
+  Future<ProviderModel> _fetchProviderFromFirestore(
+    firebase_auth.User user,
+  ) async {
+    // Retry loop for when the CF is still creating the doc (especially on new sign-up)
+    for (int i = 0; i < 4; i++) {
+      try {
+        final doc =
+            await _firestore.collection('providers').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data() as Map<String, dynamic>;
+          // Ensure we merge the ID from the doc path, just in case
+          data['id'] = doc.id;
+          return ProviderModel.fromJson(data);
+        }
+      } catch (e) {
+        // Ignore read errors during retry
+      }
+      // Wait before retrying (backoff)
+      await Future.delayed(Duration(milliseconds: 500 * (i + 1)));
+    }
+
+    // Fallback if cloud function failed entirely or is delayed too much
+    return _userToModel(user);
+  }
 
   ProviderModel _userToModel(firebase_auth.User user) {
     return ProviderModel.fromFirebaseUser(

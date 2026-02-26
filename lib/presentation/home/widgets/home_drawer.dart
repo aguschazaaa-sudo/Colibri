@@ -6,10 +6,13 @@ import 'package:cobrador/providers/auth_providers.dart';
 import 'package:go_router/go_router.dart';
 
 class HomeDrawer extends ConsumerWidget {
-  const HomeDrawer({super.key});
+  final bool isPermanent;
+
+  const HomeDrawer({super.key, this.isPermanent = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentPath = GoRouterState.of(context).uri.path;
     final authState = ref.watch(authStateProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -57,38 +60,53 @@ class HomeDrawer extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.home_outlined),
             title: const Text('Inicio'),
-            selected: true,
+            selected: currentPath.startsWith('/home'),
             selectedColor: colorScheme.primary,
             selectedTileColor: colorScheme.primaryContainer.withValues(
               alpha: 0.3,
             ),
             onTap: () {
-              Navigator.pop(context);
-              // Ya estamos en home
+              if (!isPermanent) Navigator.pop(context);
+              context.go('/home');
             },
           ),
           ListTile(
             leading: const Icon(Icons.people_alt_outlined),
             title: const Text('Directorio de Pacientes'),
+            selected: currentPath.startsWith('/patients'),
+            selectedColor: colorScheme.primary,
+            selectedTileColor: colorScheme.primaryContainer.withValues(
+              alpha: 0.3,
+            ),
             onTap: () {
-              Navigator.pop(context);
-              context.push('/patients');
+              if (!isPermanent) Navigator.pop(context);
+              context.go('/patients');
             },
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet_outlined),
             title: const Text('Finanzas'),
+            selected: currentPath.startsWith('/finances'),
+            selectedColor: colorScheme.primary,
+            selectedTileColor: colorScheme.primaryContainer.withValues(
+              alpha: 0.3,
+            ),
             onTap: () {
-              Navigator.pop(context);
-              context.push('/finances');
+              if (!isPermanent) Navigator.pop(context);
+              context.go('/finances');
             },
           ),
           ListTile(
             leading: const Icon(Icons.chat_bubble_outline),
             title: const Text('Recordatorios'),
+            selected: currentPath.startsWith('/reminders'),
+            selectedColor: colorScheme.primary,
+            selectedTileColor: colorScheme.primaryContainer.withValues(
+              alpha: 0.3,
+            ),
             onTap: () {
-              Navigator.pop(context);
-              context.push('/reminders');
+              if (!isPermanent) Navigator.pop(context);
+              context.go('/reminders');
             },
           ),
           const Spacer(),
@@ -96,9 +114,14 @@ class HomeDrawer extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: const Text('Ajustes'),
+            selected: currentPath.startsWith('/settings'),
+            selectedColor: colorScheme.primary,
+            selectedTileColor: colorScheme.primaryContainer.withValues(
+              alpha: 0.3,
+            ),
             onTap: () {
-              Navigator.pop(context);
-              context.push('/settings');
+              if (!isPermanent) Navigator.pop(context);
+              context.go('/settings');
             },
           ),
           ListTile(
@@ -108,7 +131,7 @@ class HomeDrawer extends ConsumerWidget {
               style: TextStyle(color: colorScheme.error),
             ),
             onTap: () {
-              Navigator.pop(context);
+              if (!isPermanent) Navigator.pop(context);
               ref.read(authNotifierProvider.notifier).logout();
             },
           ),

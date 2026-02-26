@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:go_router/go_router.dart';
 
 /// Top navigation bar for the landing page.
 ///
@@ -28,7 +29,7 @@ class LandingNavbar extends StatelessWidget {
           // ── Actions ──
           if (isWide) ...[
             TextButton(
-              onPressed: () {},
+              onPressed: () => context.go('/login'),
               child: Text(
                 'Iniciar Sesión',
                 style: TextStyle(color: colorScheme.onSurface),
@@ -36,7 +37,7 @@ class LandingNavbar extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.sm),
             FilledButton(
-              onPressed: () {},
+              onPressed: () => context.go('/register'),
               style: FilledButton.styleFrom(
                 backgroundColor: colorScheme.secondary,
                 foregroundColor: colorScheme.onSecondary,
@@ -71,12 +72,18 @@ class LandingNavbar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.go('/login');
+                    },
                     child: const Text('Iniciar Sesión'),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.go('/register');
+                    },
                     style: FilledButton.styleFrom(
                       backgroundColor: colorScheme.secondary,
                       foregroundColor: colorScheme.onSecondary,

@@ -7,7 +7,9 @@ const db = admin.firestore();
  * Worker that triggers when a communication is queued.
  * It uses the 'check-before-write' principle to avoid duplicates.
  */
-export const sendWhatsAppReminder = functions.firestore
+export const sendWhatsAppReminder = functions
+  .runWith({ maxInstances: 10 })
+  .firestore
   .document("communications/{commId}")
   .onCreate(async (snap, context) => {
     const commId = context.params.commId;

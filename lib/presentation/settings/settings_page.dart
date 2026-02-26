@@ -4,6 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'widgets/settings_list_tile.dart';
 
+import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
+import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -11,8 +14,9 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
+    return AdaptiveScaffold(
       appBar: AppBar(title: const Text('Ajustes')),
+      drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
       body: ListView(
         children: [
               Padding(

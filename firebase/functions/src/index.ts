@@ -14,5 +14,8 @@ export const workers = require("./workers");
 // Export appointments module
 export const appointments = require("./appointments");
 
+// Export auth module
+export const auth = require("./auth");
+
 
 

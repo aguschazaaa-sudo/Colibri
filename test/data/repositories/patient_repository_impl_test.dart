@@ -34,10 +34,16 @@ void main() {
       });
     });
 
-    test('should persist patient data into Firestore', () async {
+    test('should persist patient data into Firestore subcollection', () async {
       await repository.createPatient(tPatient);
 
-      final snapshot = await fakeFirestore.collection('patients').get();
+      // Path is now providers/{providerId}/patients
+      final snapshot =
+          await fakeFirestore
+              .collection('providers')
+              .doc('prov1')
+              .collection('patients')
+              .get();
       expect(snapshot.docs.length, 1);
 
       final data = snapshot.docs.first.data();
@@ -65,9 +71,11 @@ void main() {
         expect(patient.name, 'María García López');
       });
 
-      // Verify Firestore was updated
+      // Verify Firestore was updated at the new path
       final doc =
           await fakeFirestore
+              .collection('providers')
+              .doc('prov1')
               .collection('patients')
               .doc(createdPatient.id)
               .get();
@@ -92,6 +100,7 @@ void main() {
       final stream = repository.watchPatients('prov1');
       final patients = await stream.first;
 
+      // Only prov1's patient should be returned
       expect(patients.length, 1);
       expect(patients.first.name, 'María García');
     });
@@ -101,8 +110,6 @@ void main() {
 
   group('createPatient - negative paths', () {
     test('should handle generic exceptions gracefully', () async {
-      // FakeFirebaseFirestore won't throw FirebaseExceptions,
-      // but we verify the happy path doesn't crash with valid data.
       final result = await repository.createPatient(tPatient);
       expect(result.isRight(), true);
     });
@@ -110,12 +117,16 @@ void main() {
 
   group('watchPatients - malformed data', () {
     test('should handle documents with missing fields gracefully', () async {
-      // Seed raw malformed data directly into FakeFirestore
-      await fakeFirestore.collection('patients').add({
-        'providerId': 'prov1',
-        'name': 'Solo Nombre',
-        // Missing: phoneNumber, totalDebt, balance, createdAt
-      });
+      // Seed raw malformed data directly into the new subcollection path
+      await fakeFirestore
+          .collection('providers')
+          .doc('prov1')
+          .collection('patients')
+          .add({
+            'providerId': 'prov1',
+            'name': 'Solo Nombre',
+            // Missing: phoneNumber, totalDebt, balance, createdAt
+          });
 
       final stream = repository.watchPatients('prov1');
 

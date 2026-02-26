@@ -15,9 +15,13 @@ class _CreatePatientSheetState extends ConsumerState<CreatePatientSheet> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
   String _phone = '';
+  bool _isSubmitting = false;
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
       _formKey.currentState!.save();
 
       try {
@@ -45,6 +49,7 @@ class _CreatePatientSheetState extends ConsumerState<CreatePatientSheet> {
         }
       } catch (e) {
         if (mounted) {
+          setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
@@ -97,8 +102,15 @@ class _CreatePatientSheetState extends ConsumerState<CreatePatientSheet> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _submit,
-              child: const Text('Guardar Paciente'),
+              onPressed: _isSubmitting ? null : _submit,
+              child:
+                  _isSubmitting
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Text('Guardar Paciente'),
             ),
           ],
         ),

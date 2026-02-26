@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:go_router/go_router.dart';
 
 /// Final call-to-action block with a provocative phrase and big CTA button.
 class CtaSection extends StatelessWidget {
@@ -51,7 +52,7 @@ class CtaSection extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
 
               FilledButton.icon(
-                onPressed: () {},
+                onPressed: () => context.go('/register'),
                 style: FilledButton.styleFrom(
                   backgroundColor: colorScheme.secondary,
                   foregroundColor: colorScheme.onSecondary,

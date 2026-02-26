@@ -5,6 +5,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'widgets/payment_history_item.dart';
 import 'widgets/revenue_card.dart';
 
+import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
+import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
+
 class FinancesPage extends StatelessWidget {
   const FinancesPage({super.key});
 
@@ -12,7 +15,7 @@ class FinancesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
+    return AdaptiveScaffold(
       appBar: AppBar(
         title: const Text('Finanzas'),
         actions: [
@@ -25,6 +28,7 @@ class FinancesPage extends StatelessWidget {
           ),
         ],
       ),
+      drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -22,6 +22,7 @@ class _CreateAppointmentSheetState
   String? _selectedPatientId;
   String _concept = '';
   double _amount = 0.0;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -30,7 +31,10 @@ class _CreateAppointmentSheetState
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
       _formKey.currentState!.save();
 
       try {
@@ -71,6 +75,7 @@ class _CreateAppointmentSheetState
         }
       } catch (e) {
         if (mounted) {
+          setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
@@ -166,8 +171,15 @@ class _CreateAppointmentSheetState
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _submit,
-              child: const Text('Agendar y Generar Deuda'),
+              onPressed: _isSubmitting ? null : _submit,
+              child:
+                  _isSubmitting
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Text('Agendar y Generar Deuda'),
             ),
           ],
         ),

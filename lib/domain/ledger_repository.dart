@@ -11,10 +11,13 @@ abstract class LedgerRepository {
     required String patientId,
   });
 
-  // Observa los pagos de un paciente
-  Stream<List<Payment>> watchPayments({
+  // Obtiene una página de pagos con su cursor
+  Future<Either<Failure, ({List<Payment> items, dynamic cursor})>>
+  getPaymentsPage({
     required String providerId,
-    required String patientId,
+    String? patientId,
+    dynamic cursor,
+    int limit = 8,
   });
 
   // Observa los turnos recurrentes de un paciente
@@ -33,6 +36,13 @@ abstract class LedgerRepository {
     RecurringAppointment recurringAppointment,
   );
 
+  // Elimina un turno
+  Future<Either<Failure, void>> deleteAppointment(
+    String providerId,
+    String patientId,
+    String appointmentId,
+  );
+
   // Detiene o elimina un turno recurrente
   Future<Either<Failure, void>> deleteRecurringAppointment(
     String providerId,
@@ -42,4 +52,11 @@ abstract class LedgerRepository {
 
   // Registra un pago y aplica la lógica de reducción de deuda (FIFO)
   Future<Either<Failure, Payment>> registerPayment(Payment payment);
+
+  // Elimina un pago
+  Future<Either<Failure, void>> deletePayment(
+    String providerId,
+    String patientId,
+    String paymentId,
+  );
 }

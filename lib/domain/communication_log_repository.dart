@@ -10,4 +10,9 @@ abstract class CommunicationLogRepository {
     required String patientId,
     required double totalDebtAtThatTime,
   });
+
+  /// Calls the `triggerManualReminders` Cloud Function to bulk-queue
+  /// WhatsApp reminders for every patient of the authenticated provider
+  /// that has outstanding debt. Returns the count of queued reminders.
+  Future<Either<Failure, int>> triggerBulkReminders();
 }

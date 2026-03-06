@@ -24,6 +24,8 @@ mixin _$RecurringAppointment {
   double get defaultAmount => throw _privateConstructorUsedError;
   Frequency get frequency => throw _privateConstructorUsedError;
   DateTime get baseDate => throw _privateConstructorUsedError;
+  bool get active => throw _privateConstructorUsedError;
+  DateTime? get endDate => throw _privateConstructorUsedError;
 
   /// Create a copy of RecurringAppointment
   /// with the given fields replaced by the non-null parameter values.
@@ -47,6 +49,8 @@ abstract class $RecurringAppointmentCopyWith<$Res> {
     double defaultAmount,
     Frequency frequency,
     DateTime baseDate,
+    bool active,
+    DateTime? endDate,
   });
 }
 
@@ -75,6 +79,8 @@ class _$RecurringAppointmentCopyWithImpl<
     Object? defaultAmount = null,
     Object? frequency = null,
     Object? baseDate = null,
+    Object? active = null,
+    Object? endDate = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -113,6 +119,16 @@ class _$RecurringAppointmentCopyWithImpl<
                     ? _value.baseDate
                     : baseDate // ignore: cast_nullable_to_non_nullable
                         as DateTime,
+            active:
+                null == active
+                    ? _value.active
+                    : active // ignore: cast_nullable_to_non_nullable
+                        as bool,
+            endDate:
+                freezed == endDate
+                    ? _value.endDate
+                    : endDate // ignore: cast_nullable_to_non_nullable
+                        as DateTime?,
           )
           as $Val,
     );
@@ -136,6 +152,8 @@ abstract class _$$RecurringAppointmentImplCopyWith<$Res>
     double defaultAmount,
     Frequency frequency,
     DateTime baseDate,
+    bool active,
+    DateTime? endDate,
   });
 }
 
@@ -160,6 +178,8 @@ class __$$RecurringAppointmentImplCopyWithImpl<$Res>
     Object? defaultAmount = null,
     Object? frequency = null,
     Object? baseDate = null,
+    Object? active = null,
+    Object? endDate = freezed,
   }) {
     return _then(
       _$RecurringAppointmentImpl(
@@ -198,6 +218,16 @@ class __$$RecurringAppointmentImplCopyWithImpl<$Res>
                 ? _value.baseDate
                 : baseDate // ignore: cast_nullable_to_non_nullable
                     as DateTime,
+        active:
+            null == active
+                ? _value.active
+                : active // ignore: cast_nullable_to_non_nullable
+                    as bool,
+        endDate:
+            freezed == endDate
+                ? _value.endDate
+                : endDate // ignore: cast_nullable_to_non_nullable
+                    as DateTime?,
       ),
     );
   }
@@ -214,6 +244,8 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
     required this.defaultAmount,
     required this.frequency,
     required this.baseDate,
+    this.active = true,
+    this.endDate,
   });
 
   @override
@@ -230,10 +262,15 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
   final Frequency frequency;
   @override
   final DateTime baseDate;
+  @override
+  @JsonKey()
+  final bool active;
+  @override
+  final DateTime? endDate;
 
   @override
   String toString() {
-    return 'RecurringAppointment(id: $id, patientId: $patientId, providerId: $providerId, concept: $concept, defaultAmount: $defaultAmount, frequency: $frequency, baseDate: $baseDate)';
+    return 'RecurringAppointment(id: $id, patientId: $patientId, providerId: $providerId, concept: $concept, defaultAmount: $defaultAmount, frequency: $frequency, baseDate: $baseDate, active: $active, endDate: $endDate)';
   }
 
   @override
@@ -252,7 +289,9 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
             (identical(other.frequency, frequency) ||
                 other.frequency == frequency) &&
             (identical(other.baseDate, baseDate) ||
-                other.baseDate == baseDate));
+                other.baseDate == baseDate) &&
+            (identical(other.active, active) || other.active == active) &&
+            (identical(other.endDate, endDate) || other.endDate == endDate));
   }
 
   @override
@@ -265,6 +304,8 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
     defaultAmount,
     frequency,
     baseDate,
+    active,
+    endDate,
   );
 
   /// Create a copy of RecurringAppointment
@@ -289,6 +330,8 @@ abstract class _RecurringAppointment implements RecurringAppointment {
     required final double defaultAmount,
     required final Frequency frequency,
     required final DateTime baseDate,
+    final bool active,
+    final DateTime? endDate,
   }) = _$RecurringAppointmentImpl;
 
   @override
@@ -305,6 +348,10 @@ abstract class _RecurringAppointment implements RecurringAppointment {
   Frequency get frequency;
   @override
   DateTime get baseDate;
+  @override
+  bool get active;
+  @override
+  DateTime? get endDate;
 
   /// Create a copy of RecurringAppointment
   /// with the given fields replaced by the non-null parameter values.

@@ -2,9 +2,11 @@ import 'package:cobrador/domain/appointment.dart';
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
+import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 class CreateAppointmentSheet extends ConsumerStatefulWidget {
   final String? initialPatientId;
@@ -23,11 +25,32 @@ class _CreateAppointmentSheetState
   String _concept = '';
   double _amount = 0.0;
   bool _isSubmitting = false;
+  DateTime _selectedDate = DateTime.now();
+  final CurrencyTextInputFormatter _formatter =
+      CurrencyTextInputFormatter.currency(
+        locale: 'es_AR',
+        symbol: '',
+        decimalDigits: 0,
+      );
 
   @override
   void initState() {
     super.initState();
     _selectedPatientId = widget.initialPatientId;
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -50,7 +73,7 @@ class _CreateAppointmentSheetState
           id: '', // Auto-generated
           patientId: _selectedPatientId!,
           providerId: providerId,
-          date: DateTime.now(), // By default creating it for today
+          date: _selectedDate,
           concept: _concept,
           totalAmount: _amount,
           amountPaid: 0.0,
@@ -142,6 +165,18 @@ class _CreateAppointmentSheetState
               },
             ),
             const SizedBox(height: 16),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Fecha del Turno',
+                  prefixIcon: Icon(Icons.calendar_today_rounded),
+                ),
+                child: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               decoration: const InputDecoration(
                 labelText: 'Concepto (e.g. Consulta general)',
@@ -160,14 +195,18 @@ class _CreateAppointmentSheetState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: [_formatter],
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Requerido';
-                if (double.tryParse(v) == null) return 'Monto inválido';
+                if (_formatter.getUnformattedValue() <= 0) {
+                  return 'Monto inválido';
+                }
                 return null;
               },
-              onSaved: (v) => _amount = double.tryParse(v ?? '') ?? 0.0,
+              onSaved:
+                  (v) => _amount = _formatter.getUnformattedValue().toDouble(),
             ),
             const SizedBox(height: 24),
             FilledButton(

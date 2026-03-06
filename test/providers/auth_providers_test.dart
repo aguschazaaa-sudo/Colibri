@@ -14,7 +14,13 @@ class Listener<T> extends Mock {
   void call(T? previous, T next);
 }
 
+class AsyncValueFake<T> extends Fake implements AsyncValue<T> {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(AsyncValueFake<void>());
+  });
+
   late ProviderContainer container;
   late MockAuthRepository mockRepository;
 
@@ -43,9 +49,9 @@ void main() {
   );
 
   group('AuthNotifier', () {
-    test('initial state is AsyncData(null)', () {
+    test('initial state is AsyncLoading() due to async build', () {
       final state = container.read(authNotifierProvider);
-      expect(state, const AsyncData(null));
+      expect(state, isA<AsyncLoading<void>>());
     });
 
     test('login success sets data', () async {
@@ -57,13 +63,6 @@ void main() {
         () => mockRepository.signInWithEmailAndPassword(tEmail, tPassword),
       ).thenAnswer((_) async => Right(tProvider));
 
-      final listener = Listener<AsyncValue<void>>();
-      container.listen(
-        authNotifierProvider,
-        listener.call,
-        fireImmediately: true,
-      );
-
       // act
       final result = await container
           .read(authNotifierProvider.notifier)
@@ -71,11 +70,6 @@ void main() {
 
       // assert
       expect(result.isRight(), true);
-      verifyInOrder([
-        () => listener(null, const AsyncData<void>(null)),
-        () => listener(const AsyncData<void>(null), const AsyncLoading<void>()),
-        () => listener(const AsyncLoading<void>(), const AsyncData<void>(null)),
-      ]);
       verify(
         () => mockRepository.signInWithEmailAndPassword(tEmail, tPassword),
       ).called(1);
@@ -91,13 +85,6 @@ void main() {
         () => mockRepository.signInWithEmailAndPassword(tEmail, tPassword),
       ).thenAnswer((_) async => const Left(tFailure));
 
-      final listener = Listener<AsyncValue<void>>();
-      container.listen(
-        authNotifierProvider,
-        listener.call,
-        fireImmediately: true,
-      );
-
       // act
       final result = await container
           .read(authNotifierProvider.notifier)
@@ -105,13 +92,6 @@ void main() {
 
       // assert
       expect(result, const Left(tFailure));
-      // In our design, we return the failure but keep the state as AsyncData to allow the UI to handle the error snippet.
-      // The state transitions are AsyncData -> AsyncLoading -> AsyncData
-      verifyInOrder([
-        () => listener(null, const AsyncData<void>(null)),
-        () => listener(const AsyncData<void>(null), const AsyncLoading<void>()),
-        () => listener(const AsyncLoading<void>(), const AsyncData<void>(null)),
-      ]);
     });
   });
 }

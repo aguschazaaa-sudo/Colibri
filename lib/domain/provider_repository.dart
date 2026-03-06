@@ -1,3 +1,4 @@
+import 'package:cobrador/domain/dashboard_report.dart';
 import 'package:cobrador/domain/failure.dart';
 import 'package:cobrador/domain/provider.dart';
 import 'package:fpdart/fpdart.dart';
@@ -9,4 +10,19 @@ abstract class ProviderRepository {
 
   /// Updates the provider's profile (name, default monthly interest rate)
   Future<Either<Failure, Provider>> updateProviderProfile(Provider provider);
+
+  /// Watches the pre-calculated dashboard metrics document stored at:
+  /// `providers/{providerId}/metrics/dashboard`
+  ///
+  /// Emits [DashboardReport.empty()] if the document doesn't exist yet.
+  Stream<DashboardReport> watchDashboardReport(String providerId);
+
+  /// Adds a non-working day (MM-DD format) to the provider's list.
+  Future<Either<Failure, Unit>> addNonWorkingDay(String providerId, String day);
+
+  /// Removes a non-working day (MM-DD format) from the provider's list.
+  Future<Either<Failure, Unit>> removeNonWorkingDay(
+    String providerId,
+    String day,
+  );
 }

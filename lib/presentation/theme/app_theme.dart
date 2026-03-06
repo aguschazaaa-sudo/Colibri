@@ -4,22 +4,22 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   // Define custom colors based on our design system
   static const Color primary = Color(0xFF00695C); // Deep Teal
-  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onPrimary = Color(0xFFB2DFDB); // Visible Teal tint
   static const Color primaryContainer = Color(0xFF6FF9E8);
   static const Color onPrimaryContainer = Color(0xFF00201B);
 
   static const Color secondary = Color(0xFFFF6D00); // Energic Orange
-  static const Color onSecondary = Color(0xFFFFFFFF);
+  static const Color onSecondary = Color(0xFFFFE0B2); // Visible Orange tint
   static const Color secondaryContainer = Color(0xFFFFDCC2);
   static const Color onSecondaryContainer = Color(0xFF331400);
 
   static const Color tertiary = Color(0xFF10B981); // Money/Emerald Green
-  static const Color onTertiary = Color(0xFFFFFFFF);
+  static const Color onTertiary = Color(0xFFD1FAE5); // Visible Emerald tint
   static const Color tertiaryContainer = Color(0xFFD1FAE5);
   static const Color onTertiaryContainer = Color(0xFF065F46);
 
   static const Color error = Color(0xFFBA1A1A); // Coral Red
-  static const Color onError = Color(0xFFFFFFFF);
+  static const Color onError = Color(0xFFFFDAD6); // Visible Red tint
   static const Color errorContainer = Color(0xFFFFDAD6);
   static const Color onErrorContainer = Color(0xFF410002);
 

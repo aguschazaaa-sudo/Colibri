@@ -10,8 +10,10 @@ class ProviderModel {
   final String email;
   final String name;
   final SubscriptionStatus subscriptionStatus;
+  final SubscriptionPlan plan;
   final DateTime? subscriptionExpiresAt;
   final double defaultMonthlyInterestRate;
+  final List<String> nonWorkingDays;
   final DateTime createdAt;
 
   const ProviderModel({
@@ -19,14 +21,16 @@ class ProviderModel {
     required this.email,
     required this.name,
     required this.subscriptionStatus,
+    required this.plan,
     this.subscriptionExpiresAt,
     required this.defaultMonthlyInterestRate,
+    this.nonWorkingDays = const [],
     required this.createdAt,
   });
 
   /// Creates a [ProviderModel] from a Firebase Auth user's basic info.
   ///
-  /// New users get [SubscriptionStatus.active] by default.
+  /// New users get a 5-day basic trial.
   factory ProviderModel.fromFirebaseUser({
     required String uid,
     required String? email,
@@ -37,7 +41,20 @@ class ProviderModel {
       email: email ?? '',
       name: displayName ?? '',
       subscriptionStatus: SubscriptionStatus.active,
+      plan: SubscriptionPlan.basic,
+      subscriptionExpiresAt: DateTime.now().add(const Duration(days: 5)),
       defaultMonthlyInterestRate: 0.0,
+      nonWorkingDays: const [
+        '01-01',
+        '03-24',
+        '04-02',
+        '05-01',
+        '05-25',
+        '06-20',
+        '07-09',
+        '12-08',
+        '12-25',
+      ],
       createdAt: DateTime.now(),
     );
   }
@@ -49,9 +66,11 @@ class ProviderModel {
       'email': email,
       'name': name,
       'subscriptionStatus': subscriptionStatus.name,
+      'plan': plan.name,
       if (subscriptionExpiresAt != null)
         'subscriptionExpiresAt': Timestamp.fromDate(subscriptionExpiresAt!),
       'defaultMonthlyInterestRate': defaultMonthlyInterestRate,
+      'nonWorkingDays': nonWorkingDays,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -59,12 +78,16 @@ class ProviderModel {
   /// Creates a [ProviderModel] from a Firestore document map.
   factory ProviderModel.fromJson(Map<String, dynamic> json) {
     return ProviderModel(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      name: json['name'] as String,
+      id: (json['id'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
       subscriptionStatus: SubscriptionStatus.values.firstWhere(
         (e) => e.name == json['subscriptionStatus'],
         orElse: () => SubscriptionStatus.active,
+      ),
+      plan: SubscriptionPlan.values.firstWhere(
+        (e) => e.name == json['plan'],
+        orElse: () => SubscriptionPlan.none,
       ),
       subscriptionExpiresAt:
           json['subscriptionExpiresAt'] != null
@@ -72,7 +95,15 @@ class ProviderModel {
               : null,
       defaultMonthlyInterestRate:
           (json['defaultMonthlyInterestRate'] as num?)?.toDouble() ?? 0.0,
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
+      nonWorkingDays:
+          (json['nonWorkingDays'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      createdAt:
+          json['createdAt'] != null
+              ? (json['createdAt'] as Timestamp).toDate()
+              : DateTime.now(),
     );
   }
 
@@ -83,8 +114,10 @@ class ProviderModel {
       email: email,
       name: name,
       subscriptionStatus: subscriptionStatus,
+      plan: plan,
       subscriptionExpiresAt: subscriptionExpiresAt,
       defaultMonthlyInterestRate: defaultMonthlyInterestRate,
+      nonWorkingDays: nonWorkingDays,
       createdAt: createdAt,
     );
   }

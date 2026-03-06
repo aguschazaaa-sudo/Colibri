@@ -9,6 +9,9 @@ class RecurringAppointmentModel {
   final double defaultAmount;
   final Frequency frequency;
   final DateTime baseDate;
+  final DateTime? endDate;
+
+  final bool active;
 
   const RecurringAppointmentModel({
     required this.id,
@@ -18,6 +21,8 @@ class RecurringAppointmentModel {
     required this.defaultAmount,
     required this.frequency,
     required this.baseDate,
+    required this.active,
+    this.endDate,
   });
 
   factory RecurringAppointmentModel.fromEntity(RecurringAppointment entity) {
@@ -29,6 +34,8 @@ class RecurringAppointmentModel {
       defaultAmount: entity.defaultAmount,
       frequency: entity.frequency,
       baseDate: entity.baseDate,
+      active: entity.active,
+      endDate: entity.endDate,
     );
   }
 
@@ -47,6 +54,11 @@ class RecurringAppointmentModel {
         orElse: () => Frequency.monthly, // default fail-safe
       ),
       baseDate: (json['baseDate'] as Timestamp).toDate(),
+      active: json['active'] as bool? ?? true,
+      endDate:
+          json['endDate'] != null
+              ? (json['endDate'] as Timestamp).toDate()
+              : null,
     );
   }
 
@@ -58,6 +70,8 @@ class RecurringAppointmentModel {
       'defaultAmount': defaultAmount,
       'frequency': frequency.name,
       'baseDate': Timestamp.fromDate(baseDate),
+      'active': active,
+      if (endDate != null) 'endDate': Timestamp.fromDate(endDate!),
     };
   }
 
@@ -70,6 +84,8 @@ class RecurringAppointmentModel {
       defaultAmount: defaultAmount,
       frequency: frequency,
       baseDate: baseDate,
+      active: active,
+      endDate: endDate,
     );
   }
 }

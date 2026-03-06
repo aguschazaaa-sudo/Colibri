@@ -1,3 +1,4 @@
+import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,12 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
   String? _selectedPatientId;
   double _amount = 0.0;
   bool _isSubmitting = false;
+  final CurrencyTextInputFormatter _formatter =
+      CurrencyTextInputFormatter.currency(
+        locale: 'es_AR',
+        symbol: '',
+        decimalDigits: 0,
+      );
 
   @override
   void initState() {
@@ -153,14 +160,18 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: [_formatter],
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Requerido';
-                if (double.tryParse(v) == null) return 'Monto inválido';
+                if (_formatter.getUnformattedValue() <= 0) {
+                  return 'Monto inválido';
+                }
                 return null;
               },
-              onSaved: (v) => _amount = double.tryParse(v ?? '') ?? 0.0,
+              onSaved:
+                  (v) => _amount = _formatter.getUnformattedValue().toDouble(),
             ),
             const SizedBox(height: 24),
             FilledButton(

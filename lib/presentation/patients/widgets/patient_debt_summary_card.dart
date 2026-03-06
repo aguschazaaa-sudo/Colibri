@@ -20,6 +20,31 @@ class PatientDebtSummaryCard extends StatelessWidget {
       decimalDigits: 0,
     );
 
+    final bool hasDebt = patient.totalDebt > 0;
+    final bool hasCredit = patient.balance > 0;
+
+    Color containerColor;
+    Color onContainerColor;
+    String titleText;
+    String amountText;
+
+    if (hasDebt) {
+      containerColor = colorScheme.secondaryContainer;
+      onContainerColor = colorScheme.onSecondaryContainer;
+      titleText = 'Deuda Total';
+      amountText = currencyFormat.format(patient.totalDebt);
+    } else if (hasCredit) {
+      containerColor = colorScheme.primaryContainer;
+      onContainerColor = colorScheme.onPrimaryContainer;
+      titleText = 'Saldo a favor';
+      amountText = currencyFormat.format(patient.balance);
+    } else {
+      containerColor = colorScheme.surfaceContainerHighest;
+      onContainerColor = colorScheme.onSurfaceVariant;
+      titleText = 'Estado de cuenta';
+      amountText = 'Sin deuda';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -30,22 +55,20 @@ class PatientDebtSummaryCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Card(
           elevation: 0,
-          color: colorScheme.errorContainer,
+          color: containerColor,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Deuda Total',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onErrorContainer,
-                  ),
+                  titleText,
+                  style: textTheme.bodyLarge?.copyWith(color: onContainerColor),
                 ),
                 Text(
-                  currencyFormat.format(patient.totalDebt),
+                  amountText,
                   style: textTheme.titleLarge?.copyWith(
-                    color: colorScheme.onErrorContainer,
+                    color: onContainerColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

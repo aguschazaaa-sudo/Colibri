@@ -1,2 +1,2 @@
-export * from "./createRecurring";
-export { onAppointmentCreated } from "./onAppointmentCreated";
+export * from "./onAppointmentCreated";
+export * from "./onAppointmentDeleted";

@@ -1,5 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { incrementDashboardMetrics } from "../utils/metrics_utils";
+import { distributePaymentFIFO } from "../utils/payment_distribution";
 
 const db = admin.firestore();
 
@@ -44,7 +46,7 @@ export const onPaymentCreated = functions
       .doc(patientId);
 
     try {
-      await db.runTransaction(async (transaction) => {
+      const txResult = await db.runTransaction(async (transaction) => {
         // 1. Read patient + unpaid appointments (all reads before writes)
         const appointmentsQuery = patientRef
           .collection("appointments")
@@ -67,38 +69,16 @@ export const onPaymentCreated = functions
         const currentBalance: number = patientData.balance || 0;
 
         // 2. FIFO Payment Distribution
-        let moneyLeftToDistribute = paymentAmount;
-        let totalDebtDecrease = 0;
-
-        // If a specific appointment is targeted, filter to just that one
-        const targetDocs = specificAppointmentId
-          ? unpaidSnapshot.docs.filter((doc) => doc.id === specificAppointmentId)
-          : unpaidSnapshot.docs;
-
-        for (const doc of targetDocs) {
-          if (moneyLeftToDistribute <= 0) break;
-
-          const appData = doc.data();
-          const pendingAmount = appData.totalAmount - appData.amountPaid;
-
-          if (pendingAmount > 0) {
-            const amountToApply = Math.min(moneyLeftToDistribute, pendingAmount);
-            const newAmountPaid = appData.amountPaid + amountToApply;
-            const newStatus = newAmountPaid >= appData.totalAmount ? "liquidated" : "unpaid";
-
-            transaction.update(doc.ref, {
-              amountPaid: newAmountPaid,
-              status: newStatus,
-            });
-
-            moneyLeftToDistribute -= amountToApply;
-            totalDebtDecrease += amountToApply;
-          }
-        }
+        const { totalDebtDecrease, leftoverBalance: moneyLeftForBalance } = distributePaymentFIFO(
+          transaction,
+          paymentAmount,
+          unpaidSnapshot.docs,
+          specificAppointmentId
+        );
 
         // 3. Update patient's totalDebt and balance
         const newTotalDebt = Math.max(0, currentTotalDebt - totalDebtDecrease);
-        const newBalance = currentBalance + moneyLeftToDistribute;
+        const newBalance = currentBalance + moneyLeftForBalance;
 
         transaction.update(patientRef, {
           totalDebt: newTotalDebt,
@@ -107,11 +87,22 @@ export const onPaymentCreated = functions
 
         console.log(
           `[onPaymentCreated] Payment ${paymentId} processed. ` +
-          `Applied: $${totalDebtDecrease}. To balance: $${moneyLeftToDistribute}. ` +
+          `Applied: $${totalDebtDecrease}. To balance: $${moneyLeftForBalance}. ` +
           `totalDebt: ${currentTotalDebt} → ${newTotalDebt}. ` +
           `balance: ${currentBalance} → ${newBalance}`
         );
+
+        // Return values needed for dashboard update outside the transaction
+        return { totalDebtDecrease, totalPaymentAmount: paymentAmount };
       });
+
+      // Update the pre-calculated dashboard metrics (best-effort, outside transaction)
+      if (txResult) {
+        await incrementDashboardMetrics(providerId, {
+          totalToCollect: -txResult.totalDebtDecrease, // reduce debt owed
+          monthlyRevenue: txResult.totalPaymentAmount,  // add to monthly earnings
+        });
+      }
     } catch (error) {
       console.error(`[onPaymentCreated] Transaction failed for payment ${paymentId}:`, error);
       throw error; // Re-throw to trigger retry

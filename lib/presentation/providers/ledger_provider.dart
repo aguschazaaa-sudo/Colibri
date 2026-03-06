@@ -1,5 +1,6 @@
 import 'package:cobrador/domain/appointment.dart';
 import 'package:cobrador/domain/payment.dart';
+import 'package:cobrador/domain/recurring_appointment.dart';
 import 'package:cobrador/presentation/providers/repository_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -45,6 +46,42 @@ class Ledger extends _$Ledger {
 
     result.fold((failure) => throw Exception(failure.message), (_) => null);
   }
+
+  /// Crea un nuevo turno recurrente
+  Future<void> createRecurringAppointment(
+    RecurringAppointment recurringAppointment,
+  ) async {
+    final repository = ref.read(ledgerRepositoryProvider);
+    final result = await repository.createRecurringAppointment(
+      recurringAppointment,
+    );
+
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
+
+  /// Elimina un turno
+  Future<void> deleteAppointment(String appointmentId) async {
+    final repository = ref.read(ledgerRepositoryProvider);
+    final result = await repository.deleteAppointment(
+      providerId,
+      patientId,
+      appointmentId,
+    );
+
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
+
+  /// Elimina un pago
+  Future<void> deletePayment(String paymentId) async {
+    final repository = ref.read(ledgerRepositoryProvider);
+    final result = await repository.deletePayment(
+      providerId,
+      patientId,
+      paymentId,
+    );
+
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
 }
 
 /// Provider extra para observar solo los pagos de un paciente
@@ -54,6 +91,21 @@ Stream<List<Payment>> patientPayments(
   required String providerId,
   required String patientId,
 }) {
+  // final repository = ref.watch(ledgerRepositoryProvider);
+  // return repository.watchPayments(providerId: providerId, patientId: patientId);
+  return const Stream.empty(); // Placeholder until we decide if we need a stream here
+}
+
+/// Provider extra para observar solo los turnos recurrentes de un paciente
+@riverpod
+Stream<List<RecurringAppointment>> patientRecurringAppointments(
+  Ref ref, {
+  required String providerId,
+  required String patientId,
+}) {
   final repository = ref.watch(ledgerRepositoryProvider);
-  return repository.watchPayments(providerId: providerId, patientId: patientId);
+  return repository.watchRecurringAppointments(
+    providerId: providerId,
+    patientId: patientId,
+  );
 }

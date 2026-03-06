@@ -1,6 +1,7 @@
 import 'package:cobrador/domain/patient.dart';
 import 'package:cobrador/presentation/shared/modals/create_appointment_sheet.dart';
 import 'package:cobrador/presentation/shared/modals/create_payment_sheet.dart';
+import 'package:cobrador/presentation/shared/modals/create_recurring_appointment_sheet.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -34,7 +35,11 @@ class PatientListTile extends StatelessWidget {
           patient.name,
           style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
-        subtitle: _PatientDebtStatus(debt: patient.totalDebt, hasDebt: hasDebt),
+        subtitle: _PatientDebtStatus(
+          debt: patient.totalDebt,
+          balance: patient.balance,
+          hasDebt: hasDebt,
+        ),
         trailing: _PatientQuickActions(patientId: patient.id),
         onTap: () {
           context.push('/patients/${patient.id}', extra: patient);
@@ -66,16 +71,19 @@ class _PatientAvatar extends StatelessWidget {
 
 class _PatientDebtStatus extends StatelessWidget {
   final double debt;
+  final double balance;
   final bool hasDebt;
 
-  const _PatientDebtStatus({required this.debt, required this.hasDebt});
+  const _PatientDebtStatus({
+    required this.debt,
+    required this.balance,
+    required this.hasDebt,
+  });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-
-    final indicatorColor = hasDebt ? colorScheme.error : colorScheme.primary;
 
     final currencyFormat = NumberFormat.currency(
       locale: 'es_AR',
@@ -83,11 +91,31 @@ class _PatientDebtStatus extends StatelessWidget {
       decimalDigits: 0,
     );
 
+    final bool hasCredit = balance > 0;
+
+    Color indicatorColor;
+    String text;
+    FontWeight fontWeight;
+
+    if (hasDebt) {
+      indicatorColor = colorScheme.secondary;
+      text = 'Deuda: ${currencyFormat.format(debt)}';
+      fontWeight = FontWeight.bold;
+    } else if (hasCredit) {
+      indicatorColor = colorScheme.primary;
+      text = 'A favor: ${currencyFormat.format(balance)}';
+      fontWeight = FontWeight.bold;
+    } else {
+      indicatorColor = colorScheme.primary;
+      text = 'Sin deuda';
+      fontWeight = FontWeight.normal;
+    }
+
     return Text(
-      hasDebt ? 'Deuda: ${currencyFormat.format(debt)}' : 'Sin deuda',
+      text,
       style: textTheme.bodyMedium?.copyWith(
         color: indicatorColor,
-        fontWeight: hasDebt ? FontWeight.bold : FontWeight.normal,
+        fontWeight: fontWeight,
       ),
     );
   }
@@ -112,6 +140,20 @@ class _PatientQuickActions extends StatelessWidget {
               isScrollControlled: true,
               builder:
                   (_) => CreateAppointmentSheet(initialPatientId: patientId),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.event_repeat_rounded),
+          tooltip: 'Abono recurrente',
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              builder:
+                  (_) => CreateRecurringAppointmentSheet(
+                    initialPatientId: patientId,
+                  ),
             );
           },
         ),

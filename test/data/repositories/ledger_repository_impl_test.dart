@@ -117,7 +117,7 @@ void main() {
       final mockResult = MockHttpsCallableResult();
 
       when(
-        () => mockFunctions.httpsCallable('registerPayment'),
+        () => mockFunctions.httpsCallable('payments-registerPayment'),
       ).thenReturn(mockCallable);
 
       when(() => mockCallable.call(any())).thenAnswer((_) async => mockResult);
@@ -134,7 +134,57 @@ void main() {
         expect(payment.patientId, 'pat1');
       });
 
-      verify(() => mockFunctions.httpsCallable('registerPayment')).called(1);
+      verify(
+        () => mockFunctions.httpsCallable('payments-registerPayment'),
+      ).called(1);
+    });
+  });
+
+  // ─── deleteAppointment ─────────────────────────────────────
+
+  group('deleteAppointment', () {
+    test('should successfully delete the appointment document', () async {
+      final docRef = await appointmentsRef('prov1', 'pat1').add({
+        'patientId': 'pat1',
+        'providerId': 'prov1',
+        'concept': 'Consulta',
+        'totalAmount': 50.0,
+        'amountPaid': 0.0,
+        'status': 'unpaid',
+        'date': Timestamp.fromDate(DateTime(2026, 1, 15)),
+      });
+
+      final result = await repository.deleteAppointment(
+        'prov1',
+        'pat1',
+        docRef.id,
+      );
+
+      expect(result.isRight(), true);
+
+      final snapshot =
+          await appointmentsRef('prov1', 'pat1').doc(docRef.id).get();
+      expect(snapshot.exists, false);
+    });
+  });
+
+  // ─── deletePayment ─────────────────────────────────────────
+
+  group('deletePayment', () {
+    test('should successfully delete the payment document', () async {
+      final docRef = await paymentsRef('prov1', 'pat1').add({
+        'patientId': 'pat1',
+        'providerId': 'prov1',
+        'amount': 100.0,
+        'date': Timestamp.fromDate(DateTime(2026, 1, 15)),
+      });
+
+      final result = await repository.deletePayment('prov1', 'pat1', docRef.id);
+
+      expect(result.isRight(), true);
+
+      final snapshot = await paymentsRef('prov1', 'pat1').doc(docRef.id).get();
+      expect(snapshot.exists, false);
     });
   });
 
@@ -185,16 +235,21 @@ void main() {
     );
   });
 
-  // ─── watchPayments ─────────────────────────────────────────
+  // ─── getPaymentsPage ───────────────────────────────────────
 
-  group('watchPayments', () {
-    test('should emit empty list when no payments exist', () async {
-      final stream = repository.watchPayments(
+  group('getPaymentsPage', () {
+    test('should return empty list when no payments exist', () async {
+      final result = await repository.getPaymentsPage(
         providerId: 'prov1',
         patientId: 'pat1',
+        limit: 8,
       );
 
-      await expectLater(stream, emits(isEmpty));
+      expect(result.isRight(), true);
+      result.map((data) {
+        expect(data.items, isEmpty);
+        expect(data.cursor, isNull);
+      });
     });
 
     test(
@@ -213,14 +268,17 @@ void main() {
           'date': Timestamp.fromDate(DateTime(2026, 1, 6)),
         });
 
-        final stream = repository.watchPayments(
+        final result = await repository.getPaymentsPage(
           providerId: 'prov1',
           patientId: 'pat1',
+          limit: 8,
         );
-        final payments = await stream.first;
 
-        expect(payments.length, 1);
-        expect(payments.first.amount, 50.0);
+        expect(result.isRight(), true);
+        result.map((data) {
+          expect(data.items.length, 1);
+          expect(data.items.first.amount, 50.0);
+        });
       },
     );
   });
@@ -244,20 +302,23 @@ void main() {
     });
   });
 
-  group('watchPayments - malformed data', () {
-    test('should error on documents with missing required fields', () async {
-      await paymentsRef('prov1', 'pat1').add({
-        'patientId': 'pat1',
-        'providerId': 'prov1',
-        // Missing: amount, date
-      });
+  group('getPaymentsPage - malformed data', () {
+    test(
+      'should return Left(Failure) on documents with missing required fields',
+      () async {
+        await paymentsRef('prov1', 'pat1').add({
+          'patientId': 'pat1',
+          'providerId': 'prov1',
+          // Missing: amount, date
+        });
 
-      final stream = repository.watchPayments(
-        providerId: 'prov1',
-        patientId: 'pat1',
-      );
+        final result = await repository.getPaymentsPage(
+          providerId: 'prov1',
+          patientId: 'pat1',
+        );
 
-      await expectLater(stream, emitsError(isA<TypeError>()));
-    });
+        expect(result.isLeft(), true);
+      },
+    );
   });
 }

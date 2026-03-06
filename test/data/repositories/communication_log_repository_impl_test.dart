@@ -1,6 +1,10 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cobrador/data/repositories/communication_log_repository_impl.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockFirebaseFunctions extends Mock implements FirebaseFunctions {}
 
 void main() {
   late CommunicationLogRepositoryImpl repository;
@@ -8,7 +12,10 @@ void main() {
 
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
-    repository = CommunicationLogRepositoryImpl(fakeFirestore);
+    repository = CommunicationLogRepositoryImpl(
+      fakeFirestore,
+      _MockFirebaseFunctions(),
+    );
   });
 
   group('enqueueWhatsAppReminder', () {

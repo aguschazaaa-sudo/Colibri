@@ -1,29 +1,27 @@
-import 'package:cobrador/domain/patient.dart';
-import 'package:cobrador/presentation/providers/use_case_providers.dart';
+import 'package:cobrador/presentation/providers/repository_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'reminders_provider.g.dart';
 
+/// Notifier for the Reminders page.
+///
+/// State: `AsyncValue<int?>` — null = idle, int = queued count from last send.
 @riverpod
 class RemindersController extends _$RemindersController {
   @override
-  FutureOr<void> build() {
-    // Initial state is nothing
-  }
+  AsyncValue<int?> build() => const AsyncData(null);
 
-  Future<void> triggerReminder(Patient patient) async {
-    state = const AsyncValue.loading();
+  /// Calls the `triggerManualReminders` Cloud Function to bulk-queue
+  /// WhatsApp reminders for all patients of the current provider with debt.
+  Future<void> triggerBulkSend() async {
+    state = const AsyncLoading();
 
-    final useCase = ref.read(triggerWhatsAppRemindersUseCaseProvider);
-    final result = await useCase.execute(patient);
+    final repo = ref.read(communicationLogRepositoryProvider);
+    final result = await repo.triggerBulkReminders();
 
     result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-      },
-      (log) {
-        state = const AsyncValue.data(null);
-      },
+      (failure) => state = AsyncError(failure, StackTrace.current),
+      (queued) => state = AsyncData(queued),
     );
   }
 }

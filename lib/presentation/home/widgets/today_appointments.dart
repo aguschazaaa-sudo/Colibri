@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -54,24 +55,32 @@ class TodayAppointmentsSection extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             SizedBox(
               height: 140, // Height for the horizontal list
-              child: ListView.separated(
-                padding: AppSpacing.edgeInsetsH,
-                scrollDirection: Axis.horizontal,
-                itemCount: todayAppointments.length,
-                separatorBuilder:
-                    (_, __) => const SizedBox(width: AppSpacing.md),
-                itemBuilder: (context, index) {
-                  final apt = todayAppointments[index];
-                  return _AppointmentCard(appointment: apt)
-                      .animate(delay: (100 * index).ms)
-                      .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-                      .slideX(
-                        begin: 0.05,
-                        end: 0,
-                        duration: 400.ms,
-                        curve: Curves.easeOut,
-                      );
-                },
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                  },
+                ),
+                child: ListView.separated(
+                  padding: AppSpacing.edgeInsetsH,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: todayAppointments.length,
+                  separatorBuilder:
+                      (_, __) => const SizedBox(width: AppSpacing.md),
+                  itemBuilder: (context, index) {
+                    final apt = todayAppointments[index];
+                    return _AppointmentCard(appointment: apt)
+                        .animate(delay: (100 * index).ms)
+                        .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                        .slideX(
+                          begin: 0.05,
+                          end: 0,
+                          duration: 400.ms,
+                          curve: Curves.easeOut,
+                        );
+                  },
+                ),
               ),
             ),
           ],
@@ -95,26 +104,34 @@ class TodayAppointmentsSection extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.sm),
                 SizedBox(
                   height: 140,
-                  child: ListView.separated(
-                    padding: AppSpacing.edgeInsetsH,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 3, // Generate 3 dummy cards
-                    separatorBuilder:
-                        (_, __) => const SizedBox(width: AppSpacing.md),
-                    itemBuilder: (context, index) {
-                      return _AppointmentCard(
-                        appointment: Appointment(
-                          id: '',
-                          patientId: 'Cargando nombre largo asd...',
-                          providerId: '',
-                          date: DateTime.now(),
-                          concept: 'Consulta general',
-                          totalAmount: 90000,
-                          amountPaid: 0,
-                          status: AppointmentStatus.unpaid,
-                        ),
-                      );
-                    },
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context).copyWith(
+                      dragDevices: {
+                        PointerDeviceKind.touch,
+                        PointerDeviceKind.mouse,
+                      },
+                    ),
+                    child: ListView.separated(
+                      padding: AppSpacing.edgeInsetsH,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 3, // Generate 3 dummy cards
+                      separatorBuilder:
+                          (_, __) => const SizedBox(width: AppSpacing.md),
+                      itemBuilder: (context, index) {
+                        return _AppointmentCard(
+                          appointment: Appointment(
+                            id: '',
+                            patientId: 'Cargando nombre largo asd...',
+                            providerId: '',
+                            date: DateTime.now(),
+                            concept: 'Consulta general',
+                            totalAmount: 90000,
+                            amountPaid: 0,
+                            status: AppointmentStatus.unpaid,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],

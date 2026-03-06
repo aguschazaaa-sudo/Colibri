@@ -1,4 +1,7 @@
 import 'package:cobrador/domain/patient.dart';
+import 'package:cobrador/presentation/patients/widgets/edit_patient_modal.dart';
+import 'package:cobrador/presentation/patients/widgets/recurring_appointments_list.dart';
+import 'package:cobrador/presentation/patients/widgets/unpaid_appointments_list.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,17 +31,32 @@ class PatientDetailPage extends ConsumerWidget {
     final patient = patientObj!;
 
     return Scaffold(
-      appBar: _PatientDetailAppBar(patientName: patient.name),
+      appBar: _PatientDetailAppBar(
+        patientName: patient.name,
+        onEdit: () => showEditPatientModal(context, ref, patient),
+      ),
       body: SingleChildScrollView(
-        padding: AppSpacing.edgeInsetsH.copyWith(top: AppSpacing.md),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.md,
+          bottom: AppSpacing.xxl,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PatientHeaderCard(patient: patient),
+            Padding(
+              padding: AppSpacing.edgeInsetsH,
+              child: PatientHeaderCard(patient: patient),
+            ),
             const SizedBox(height: AppSpacing.lg),
-            PatientDebtSummaryCard(patient: patient),
+            Padding(
+              padding: AppSpacing.edgeInsetsH,
+              child: PatientDebtSummaryCard(patient: patient),
+            ),
             const SizedBox(height: AppSpacing.lg),
-            const _PatientHistorySection(),
+            UnpaidAppointmentsList(patientId: patientId),
+            const SizedBox(height: AppSpacing.lg),
+            RecurringAppointmentsList(patientId: patientId),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
@@ -49,52 +67,18 @@ class PatientDetailPage extends ConsumerWidget {
 class _PatientDetailAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   final String patientName;
+  final VoidCallback onEdit;
 
-  const _PatientDetailAppBar({required this.patientName});
+  const _PatientDetailAppBar({required this.patientName, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(patientName),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () {
-            // Editar paciente
-          },
-        ),
-      ],
+      actions: [IconButton(icon: const Icon(Icons.edit), onPressed: onEdit)],
     );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-}
-
-class _PatientHistorySection extends StatelessWidget {
-  const _PatientHistorySection();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Historial (En construcción)',
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.all(AppSpacing.md),
-            child: Text(
-              'Funcionalidad de historial del libro mayor en proceso.',
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cobrador/data/models/patient_model.dart';
 import 'package:cobrador/data/models/appointment_model.dart';
 import 'package:cobrador/data/models/payment_model.dart';
+import 'package:cobrador/domain/provider.dart';
+import 'package:cobrador/data/models/provider_model.dart';
 import 'package:cobrador/domain/appointment.dart';
 
 void main() {
@@ -14,6 +16,47 @@ void main() {
     0,
   ); // Fixed date for deterministic testing
   final timestamp = Timestamp.fromDate(now);
+
+  group('ProviderModel Serialization', () {
+    test('should map to/from JSON correctly with nonWorkingDays', () {
+      final json = {
+        'id': 'prov1',
+        'email': 'test@test.com',
+        'name': 'Test Provider',
+        'subscriptionStatus': 'active',
+        'plan': 'basic',
+        'defaultMonthlyInterestRate': 0.05,
+        'nonWorkingDays': ['05-25', '12-25'],
+        'createdAt': timestamp,
+      };
+
+      final model = ProviderModel.fromJson(json);
+
+      expect(model.id, 'prov1');
+      expect(model.nonWorkingDays, ['05-25', '12-25']);
+      expect(model.plan, SubscriptionPlan.basic);
+
+      final reversedJson = model.toJson();
+      expect(reversedJson['id'], 'prov1');
+      expect(reversedJson['nonWorkingDays'], ['05-25', '12-25']);
+      expect(reversedJson['createdAt'], timestamp);
+    });
+
+    test('should provide empty nonWorkingDays list if missing', () {
+      final json = {
+        'id': 'prov1',
+        'email': 'test@test.com',
+        'name': 'Test Provider',
+        'subscriptionStatus': 'active',
+        'plan': 'basic',
+        'defaultMonthlyInterestRate': 0.05,
+        'createdAt': timestamp,
+      };
+
+      final model = ProviderModel.fromJson(json);
+      expect(model.nonWorkingDays, isEmpty);
+    });
+  });
 
   group('PatientModel Serialization', () {
     test('should map to/from JSON correctly', () {

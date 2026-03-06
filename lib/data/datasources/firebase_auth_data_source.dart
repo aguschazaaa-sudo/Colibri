@@ -71,11 +71,19 @@ class FirebaseAuthDataSource {
       await credential.user!.reload();
       final updatedUser = _firebaseAuth.currentUser!;
 
-      // The CF onCreate fires BEFORE updateDisplayName, so name is empty.
       // Patch the Firestore doc with the correct name from the client.
-      await _firestore.collection('providers').doc(updatedUser.uid).set({
-        'name': name,
-      }, SetOptions(merge: true));
+      // We proactively provision the full default user model here to prevent
+      // UI crashes before the cloud function finishes creating the doc.
+      final modelToSet = ProviderModel.fromFirebaseUser(
+        uid: updatedUser.uid,
+        email: email,
+        displayName: name,
+      );
+
+      await _firestore
+          .collection('providers')
+          .doc(updatedUser.uid)
+          .set(modelToSet.toJson(), SetOptions(merge: true));
 
       final model = await _fetchProviderFromFirestore(updatedUser);
       return Right(model);

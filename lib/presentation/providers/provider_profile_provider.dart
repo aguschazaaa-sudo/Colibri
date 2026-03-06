@@ -19,4 +19,16 @@ class ProviderProfile extends _$ProviderProfile {
 
     result.fold((failure) => throw Exception(failure.message), (_) => null);
   }
+
+  Future<void> addNonWorkingDay(String providerId, String day) async {
+    final repository = ref.read(providerRepositoryProvider);
+    final result = await repository.addNonWorkingDay(providerId, day);
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
+
+  Future<void> removeNonWorkingDay(String providerId, String day) async {
+    final repository = ref.read(providerRepositoryProvider);
+    final result = await repository.removeNonWorkingDay(providerId, day);
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
 }

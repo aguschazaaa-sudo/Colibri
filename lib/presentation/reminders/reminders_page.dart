@@ -1,29 +1,73 @@
+import 'package:cobrador/presentation/providers/reminders_provider.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'widgets/reminder_history_item.dart';
 
 import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
 import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
 
-class RemindersPage extends StatelessWidget {
+class RemindersPage extends ConsumerWidget {
   const RemindersPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final controllerState = ref.watch(remindersControllerProvider);
+    final isLoading = controllerState is AsyncLoading;
+
+    // Show snackbar on result
+    ref.listen<AsyncValue<int?>>(remindersControllerProvider, (_, next) {
+      next.whenOrNull(
+        data: (queued) {
+          if (queued == null) return;
+          final msg =
+              queued == 0
+                  ? 'No hay pacientes con deuda pendiente.'
+                  : '$queued recordatorio(s) enviados correctamente.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor:
+                  queued == 0
+                      ? Theme.of(context).colorScheme.secondary
+                      : Theme.of(context).colorScheme.primary,
+            ),
+          );
+        },
+        error: (err, _) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: $err'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        },
+      );
+    });
 
     return AdaptiveScaffold(
       appBar: AppBar(
         title: const Text('Recordatorios'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bolt_rounded),
+            icon:
+                isLoading
+                    ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Icon(Icons.bolt_rounded),
             tooltip: 'Forzar Envío',
-            onPressed: () {
-              // TODO: Trigger manual sync/send
-            },
+            onPressed:
+                isLoading
+                    ? null
+                    : () =>
+                        ref
+                            .read(remindersControllerProvider.notifier)
+                            .triggerBulkSend(),
           ),
         ],
       ),

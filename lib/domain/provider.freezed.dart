@@ -22,9 +22,11 @@ mixin _$Provider {
   String get name => throw _privateConstructorUsedError;
   SubscriptionStatus get subscriptionStatus =>
       throw _privateConstructorUsedError;
+  SubscriptionPlan get plan => throw _privateConstructorUsedError;
   DateTime? get subscriptionExpiresAt => throw _privateConstructorUsedError;
   double get defaultMonthlyInterestRate => throw _privateConstructorUsedError;
   String? get whatsappTemplate => throw _privateConstructorUsedError;
+  List<String> get nonWorkingDays => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Create a copy of Provider
@@ -44,9 +46,11 @@ abstract class $ProviderCopyWith<$Res> {
     String email,
     String name,
     SubscriptionStatus subscriptionStatus,
+    SubscriptionPlan plan,
     DateTime? subscriptionExpiresAt,
     double defaultMonthlyInterestRate,
     String? whatsappTemplate,
+    List<String> nonWorkingDays,
     DateTime createdAt,
   });
 }
@@ -70,9 +74,11 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
     Object? email = null,
     Object? name = null,
     Object? subscriptionStatus = null,
+    Object? plan = null,
     Object? subscriptionExpiresAt = freezed,
     Object? defaultMonthlyInterestRate = null,
     Object? whatsappTemplate = freezed,
+    Object? nonWorkingDays = null,
     Object? createdAt = null,
   }) {
     return _then(
@@ -97,6 +103,11 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
                     ? _value.subscriptionStatus
                     : subscriptionStatus // ignore: cast_nullable_to_non_nullable
                         as SubscriptionStatus,
+            plan:
+                null == plan
+                    ? _value.plan
+                    : plan // ignore: cast_nullable_to_non_nullable
+                        as SubscriptionPlan,
             subscriptionExpiresAt:
                 freezed == subscriptionExpiresAt
                     ? _value.subscriptionExpiresAt
@@ -112,6 +123,11 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
                     ? _value.whatsappTemplate
                     : whatsappTemplate // ignore: cast_nullable_to_non_nullable
                         as String?,
+            nonWorkingDays:
+                null == nonWorkingDays
+                    ? _value.nonWorkingDays
+                    : nonWorkingDays // ignore: cast_nullable_to_non_nullable
+                        as List<String>,
             createdAt:
                 null == createdAt
                     ? _value.createdAt
@@ -137,9 +153,11 @@ abstract class _$$ProviderImplCopyWith<$Res>
     String email,
     String name,
     SubscriptionStatus subscriptionStatus,
+    SubscriptionPlan plan,
     DateTime? subscriptionExpiresAt,
     double defaultMonthlyInterestRate,
     String? whatsappTemplate,
+    List<String> nonWorkingDays,
     DateTime createdAt,
   });
 }
@@ -162,9 +180,11 @@ class __$$ProviderImplCopyWithImpl<$Res>
     Object? email = null,
     Object? name = null,
     Object? subscriptionStatus = null,
+    Object? plan = null,
     Object? subscriptionExpiresAt = freezed,
     Object? defaultMonthlyInterestRate = null,
     Object? whatsappTemplate = freezed,
+    Object? nonWorkingDays = null,
     Object? createdAt = null,
   }) {
     return _then(
@@ -189,6 +209,11 @@ class __$$ProviderImplCopyWithImpl<$Res>
                 ? _value.subscriptionStatus
                 : subscriptionStatus // ignore: cast_nullable_to_non_nullable
                     as SubscriptionStatus,
+        plan:
+            null == plan
+                ? _value.plan
+                : plan // ignore: cast_nullable_to_non_nullable
+                    as SubscriptionPlan,
         subscriptionExpiresAt:
             freezed == subscriptionExpiresAt
                 ? _value.subscriptionExpiresAt
@@ -204,6 +229,11 @@ class __$$ProviderImplCopyWithImpl<$Res>
                 ? _value.whatsappTemplate
                 : whatsappTemplate // ignore: cast_nullable_to_non_nullable
                     as String?,
+        nonWorkingDays:
+            null == nonWorkingDays
+                ? _value._nonWorkingDays
+                : nonWorkingDays // ignore: cast_nullable_to_non_nullable
+                    as List<String>,
         createdAt:
             null == createdAt
                 ? _value.createdAt
@@ -222,11 +252,14 @@ class _$ProviderImpl extends _Provider {
     required this.email,
     required this.name,
     required this.subscriptionStatus,
+    this.plan = SubscriptionPlan.none,
     this.subscriptionExpiresAt,
     this.defaultMonthlyInterestRate = 0.0,
     this.whatsappTemplate,
+    final List<String> nonWorkingDays = const <String>[],
     required this.createdAt,
-  }) : super._();
+  }) : _nonWorkingDays = nonWorkingDays,
+       super._();
 
   @override
   final String id;
@@ -237,18 +270,30 @@ class _$ProviderImpl extends _Provider {
   @override
   final SubscriptionStatus subscriptionStatus;
   @override
+  @JsonKey()
+  final SubscriptionPlan plan;
+  @override
   final DateTime? subscriptionExpiresAt;
   @override
   @JsonKey()
   final double defaultMonthlyInterestRate;
   @override
   final String? whatsappTemplate;
+  final List<String> _nonWorkingDays;
+  @override
+  @JsonKey()
+  List<String> get nonWorkingDays {
+    if (_nonWorkingDays is EqualUnmodifiableListView) return _nonWorkingDays;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_nonWorkingDays);
+  }
+
   @override
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Provider(id: $id, email: $email, name: $name, subscriptionStatus: $subscriptionStatus, subscriptionExpiresAt: $subscriptionExpiresAt, defaultMonthlyInterestRate: $defaultMonthlyInterestRate, whatsappTemplate: $whatsappTemplate, createdAt: $createdAt)';
+    return 'Provider(id: $id, email: $email, name: $name, subscriptionStatus: $subscriptionStatus, plan: $plan, subscriptionExpiresAt: $subscriptionExpiresAt, defaultMonthlyInterestRate: $defaultMonthlyInterestRate, whatsappTemplate: $whatsappTemplate, nonWorkingDays: $nonWorkingDays, createdAt: $createdAt)';
   }
 
   @override
@@ -261,6 +306,7 @@ class _$ProviderImpl extends _Provider {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.subscriptionStatus, subscriptionStatus) ||
                 other.subscriptionStatus == subscriptionStatus) &&
+            (identical(other.plan, plan) || other.plan == plan) &&
             (identical(other.subscriptionExpiresAt, subscriptionExpiresAt) ||
                 other.subscriptionExpiresAt == subscriptionExpiresAt) &&
             (identical(
@@ -271,6 +317,10 @@ class _$ProviderImpl extends _Provider {
                     defaultMonthlyInterestRate) &&
             (identical(other.whatsappTemplate, whatsappTemplate) ||
                 other.whatsappTemplate == whatsappTemplate) &&
+            const DeepCollectionEquality().equals(
+              other._nonWorkingDays,
+              _nonWorkingDays,
+            ) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -282,9 +332,11 @@ class _$ProviderImpl extends _Provider {
     email,
     name,
     subscriptionStatus,
+    plan,
     subscriptionExpiresAt,
     defaultMonthlyInterestRate,
     whatsappTemplate,
+    const DeepCollectionEquality().hash(_nonWorkingDays),
     createdAt,
   );
 
@@ -303,9 +355,11 @@ abstract class _Provider extends Provider {
     required final String email,
     required final String name,
     required final SubscriptionStatus subscriptionStatus,
+    final SubscriptionPlan plan,
     final DateTime? subscriptionExpiresAt,
     final double defaultMonthlyInterestRate,
     final String? whatsappTemplate,
+    final List<String> nonWorkingDays,
     required final DateTime createdAt,
   }) = _$ProviderImpl;
   const _Provider._() : super._();
@@ -319,11 +373,15 @@ abstract class _Provider extends Provider {
   @override
   SubscriptionStatus get subscriptionStatus;
   @override
+  SubscriptionPlan get plan;
+  @override
   DateTime? get subscriptionExpiresAt;
   @override
   double get defaultMonthlyInterestRate;
   @override
   String? get whatsappTemplate;
+  @override
+  List<String> get nonWorkingDays;
   @override
   DateTime get createdAt;
 

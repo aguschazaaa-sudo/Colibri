@@ -1,79 +1,38 @@
+import 'package:cobrador/presentation/home/widgets/dashboard_metrics.dart';
+import 'package:cobrador/presentation/providers/firebase_providers.dart';
+import 'package:cobrador/presentation/providers/payments_provider.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'widgets/payment_history_item.dart';
-import 'widgets/revenue_card.dart';
 
 import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
 import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
 
-class FinancesPage extends StatelessWidget {
+class FinancesPage extends ConsumerWidget {
   const FinancesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final auth = ref.watch(firebaseAuthProvider);
+    final providerId = auth.currentUser?.uid ?? '';
+    final paymentsState = ref.watch(paymentsProvider(providerId));
 
     return AdaptiveScaffold(
-      appBar: AppBar(
-        title: const Text('Finanzas'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined),
-            tooltip: 'Exportar Reporte',
-            onPressed: () {
-              // TODO: Export report
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Finanzas')),
       drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: RevenueCard(
-                          title: 'Ingresos del mes',
-                          amount: 150000,
-                          icon: Icons.trending_up_rounded,
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-                        .slideY(
-                          begin: 0.1,
-                          end: 0,
-                          duration: 400.ms,
-                          curve: Curves.easeOut,
-                        ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: RevenueCard(
-                          title: 'Deuda por cobrar',
-                          amount: 85000,
-                          icon: Icons.hourglass_top_rounded,
-                        )
-                        .animate(delay: 50.ms)
-                        .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-                        .slideY(
-                          begin: 0.1,
-                          end: 0,
-                          duration: 400.ms,
-                          curve: Curves.easeOut,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Padding(
-              padding: AppSpacing.edgeInsetsH,
+      body: CustomScrollView(
+        slivers: [
+          const SliverPadding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            sliver: SliverToBoxAdapter(child: DashboardMetrics()),
+          ),
+          SliverPadding(
+            padding: AppSpacing.edgeInsetsH,
+            sliver: SliverToBoxAdapter(
               child: Text(
                 'Últimos Movimientos',
                 style: textTheme.titleMedium?.copyWith(
@@ -81,33 +40,77 @@ class FinancesPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // Mock list for now
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 5,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                return PaymentHistoryItem(
-                      patientName: 'Paciente ${index + 1}',
-                      amount: 5000.0 * (index + 1),
-                      date: DateTime.now().subtract(Duration(days: index)),
-                      status: 'Acreditado',
-                    )
-                    .animate(delay: (50 * index).ms)
-                    .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-                    .slideX(
-                      begin: 0.05,
-                      end: 0,
-                      duration: 400.ms,
-                      curve: Curves.easeOut,
-                    );
-              },
-            ),
-          ],
-        ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
+          paymentsState.status.when(
+            data:
+                (_) =>
+                    _buildPaymentsList(context, ref, paymentsState, providerId),
+            loading:
+                () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+            error:
+                (err, stack) => SliverToBoxAdapter(
+                  child: Center(child: Text('Error: $err')),
+                ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPaymentsList(
+    BuildContext context,
+    WidgetRef ref,
+    PaymentsState state,
+    String providerId,
+  ) {
+    if (state.payments.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Center(child: Text('No hay movimientos registrados')),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        if (index >= state.payments.length) {
+          if (state.hasMore) {
+            // Trigger next page fetch
+            Future.microtask(
+              () =>
+                  ref
+                      .read(paymentsProvider(providerId).notifier)
+                      .fetchNextPage(),
+            );
+            return const Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return null;
+        }
+
+        final payment = state.payments[index];
+        return Column(
+          children: [
+            PaymentHistoryItem(payment: payment)
+                .animate(delay: (20 * (index % 8)).ms)
+                .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                .slideX(
+                  begin: 0.05,
+                  end: 0,
+                  duration: 400.ms,
+                  curve: Curves.easeOut,
+                ),
+            if (index < state.payments.length - 1 || state.hasMore)
+              const Divider(height: 1, indent: 72),
+          ],
+        );
+      }, childCount: state.payments.length + (state.hasMore ? 1 : 0)),
     );
   }
 }

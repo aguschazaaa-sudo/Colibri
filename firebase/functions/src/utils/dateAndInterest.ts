@@ -21,6 +21,7 @@ export function computeNextDate(date: Date, frequency: string): Date {
     case "monthly_28days":
       next.setDate(next.getDate() + 28);
       break;
+    case "monthly": // User requested monthly to be monthly_pattern by default
     case "monthly_pattern": {
       // "Nth Weekday of the month" logic
       const targetDayOfWeek = date.getDay();
@@ -84,4 +85,61 @@ export function isOlderThanMonths(date: Date, months: number, referenceDate: Dat
   const threshold = new Date(referenceDate);
   threshold.setMonth(threshold.getMonth() - months);
   return date < threshold;
+}
+
+/**
+ * Strips the time component from a date, returning YYYY-MM-DD as a string.
+ */
+export function toDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Determines whether a recurring appointment should generate an appointment
+ * for the given `today` date.
+ *
+ * Starts iterating from `startFrom` (usually `lastGeneratedDate + 1 step` or
+ * `baseDate`) and walks forward using `computeNextDate` until it reaches or
+ * passes `today`. If any generated date matches `today`, returns true.
+ *
+ * @param baseDate - The original start date of the recurring series.
+ * @param frequency - One of "weekly", "biweekly", "monthly_pattern", "monthly_28days".
+ * @param today - The date to check against.
+ * @param lastGeneratedDate - Optional. The last date an appointment was generated.
+ *   If provided, iteration starts from the next date after this one.
+ * @returns true if today matches a scheduled occurrence.
+ */
+export function shouldGenerateToday(
+  baseDate: Date,
+  frequency: string,
+  today: Date,
+  lastGeneratedDate?: Date | null,
+): boolean {
+  const todayKey = toDateKey(today);
+
+  // If baseDate itself is today, it's a match
+  if (toDateKey(baseDate) === todayKey) return true;
+
+  // Start iterating from lastGeneratedDate (next step) or baseDate
+  let current: Date;
+  if (lastGeneratedDate) {
+    current = computeNextDate(lastGeneratedDate, frequency);
+  } else {
+    current = new Date(baseDate);
+  }
+
+  // Safety: limit iterations (max ~5 years of weekly = ~260)
+  const MAX_ITERATIONS = 300;
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    const currentKey = toDateKey(current);
+
+    if (currentKey === todayKey) return true;
+
+    // If we've passed today, no match
+    if (current > today) return false;
+
+    current = computeNextDate(current, frequency);
+  }
+
+  return false;
 }

@@ -10,24 +10,39 @@ import 'package:cobrador/presentation/patients/patients_page.dart';
 import 'package:cobrador/providers/auth_providers.dart';
 import 'package:cobrador/presentation/reminders/reminders_page.dart';
 import 'package:cobrador/presentation/settings/settings_page.dart';
+import 'package:cobrador/presentation/settings/non_working_days_page.dart';
+import 'package:cobrador/presentation/splash/splash_page.dart';
+import 'package:cobrador/presentation/subscription/subscription_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// Application router with auth-aware redirects.
 ///
+/// - `/splash` : Splash screen (entry point)
 /// - `/` : Landing page (public)
 /// - `/login`, `/register`, `/forgot-password` : Auth pages (redirect to /home if logged in)
 /// - `/home` : Dashboard (redirect to /login if not logged in)
+/// - `/subscription` : Subscription gateway (redirects to /home if active, blocks core app if inactive)
+
+/// Provider to track if the splash screen has been shown successfully.
+final splashShownProvider = StateProvider<bool>((ref) => false);
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
   final refreshListenable = ref.watch(authStateListenableProvider);
+  final hasShownSplash = ref.watch(splashShownProvider);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     refreshListenable: refreshListenable,
     redirect: (context, state) {
       final isLoggedIn = authState.asData?.value != null;
       final currentPath = state.matchedLocation;
+
+      // Force splash screen to show first, ignoring any initial URLs
+      if (!hasShownSplash && currentPath != '/splash') {
+        return '/splash';
+      }
 
       const authPaths = ['/login', '/register', '/forgot-password'];
       final isOnAuthPage = authPaths.contains(currentPath);
@@ -39,16 +54,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           currentPath.startsWith('/reminders') ||
           currentPath.startsWith('/settings');
 
-      // If logged in and trying to access auth pages or landing page → go to /home
-      if (isLoggedIn && (isOnAuthPage || isLandingPage)) return '/home';
+      final isOnSubscriptionPage = currentPath == '/subscription';
 
-      // If not logged in and trying to access protected pages → go to /login
-      if (!isLoggedIn && isOnHomePage) return '/';
+      if (isLoggedIn) {
+        final hasActivePlan = authState.asData!.value!.hasActivePlan;
+
+        if (!hasActivePlan) {
+          // If no active plan, block from core pages and landing/auth, redirect to subscription.
+          if (isOnHomePage || isOnAuthPage || isLandingPage) {
+            return '/subscription';
+          }
+        } else {
+          // If has active plan and visits subscription, auth pages, or landing, redirect to home.
+          if (isOnSubscriptionPage || isOnAuthPage || isLandingPage) {
+            return '/home';
+          }
+        }
+      } else {
+        // If not logged in and trying to access protected pages (including subscription) → go to landing
+        if (isOnHomePage || isOnSubscriptionPage) return '/';
+      }
 
       // No redirect
       return null;
     },
     routes: [
+      GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
       GoRoute(path: '/', builder: (context, state) => const LandingPage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
@@ -58,6 +89,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/subscription',
+        builder: (context, state) => const SubscriptionPage(),
       ),
       GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       GoRoute(
@@ -86,6 +121,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsPage(),
+        routes: [
+          GoRoute(
+            path: 'non-working-days',
+            builder: (context, state) => const NonWorkingDaysPage(),
+          ),
+        ],
       ),
     ],
   );

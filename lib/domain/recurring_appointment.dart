@@ -14,5 +14,7 @@ abstract class RecurringAppointment with _$RecurringAppointment {
     required double defaultAmount,
     required Frequency frequency,
     required DateTime baseDate,
+    @Default(true) bool active,
+    DateTime? endDate,
   }) = _RecurringAppointment;
 }

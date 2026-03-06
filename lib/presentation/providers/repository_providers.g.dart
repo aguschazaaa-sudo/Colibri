@@ -80,7 +80,7 @@ final providerRepositoryProvider = Provider<ProviderRepository>.internal(
 // ignore: unused_element
 typedef ProviderRepositoryRef = ProviderRef<ProviderRepository>;
 String _$communicationLogRepositoryHash() =>
-    r'2c918727cb26afdca3dfcd9c3c04d63d5b62beaa';
+    r'fd322f8e5ae03e39dc4cf13f12db4b4246325c55';
 
 /// See also [communicationLogRepository].
 @ProviderFor(communicationLogRepository)

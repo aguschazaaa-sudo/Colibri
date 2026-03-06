@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:go_router/go_router.dart';
@@ -108,12 +109,13 @@ class _Logo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset(
-          'assets/images/colibri_logo.png',
+        SvgPicture.asset(
+          'assets/images/COLIBRI.svg',
           width: 32,
           height: 32,
-          errorBuilder:
-              (_, __, ___) => Icon(
+          colorFilter: ColorFilter.mode(colorScheme.primary, BlendMode.srcIn),
+          placeholderBuilder:
+              (_) => Icon(
                 Icons.flutter_dash,
                 color: colorScheme.primary,
                 size: 28,

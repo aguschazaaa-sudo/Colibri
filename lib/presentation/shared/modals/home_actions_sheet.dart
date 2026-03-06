@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cobrador/presentation/shared/modals/create_patient_sheet.dart';
 import 'package:cobrador/presentation/shared/modals/create_appointment_sheet.dart';
+import 'package:cobrador/presentation/shared/modals/create_recurring_appointment_sheet.dart';
 import 'package:cobrador/presentation/shared/modals/create_payment_sheet.dart';
 
 class HomeActionsSheet extends StatelessWidget {
@@ -56,6 +57,19 @@ class HomeActionsSheet extends StatelessWidget {
                 isScrollControlled: true,
                 useRootNavigator: true,
                 builder: (context) => const CreateAppointmentSheet(),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.event_repeat_rounded),
+            title: const Text('Abono Recurrente'),
+            onTap: () {
+              Navigator.pop(context);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                useRootNavigator: true,
+                builder: (context) => const CreateRecurringAppointmentSheet(),
               );
             },
           ),

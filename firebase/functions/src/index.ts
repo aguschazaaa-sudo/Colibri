@@ -17,5 +17,8 @@ export const appointments = require("./appointments");
 // Export auth module
 export const auth = require("./auth");
 
+// Export admin module (temporary migrations)
+export const migrations = require("./admin");
+
 
 

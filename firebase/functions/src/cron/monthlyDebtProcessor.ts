@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { MONTHLY_INTEREST_RATE, calculateInterest } from "../utils/dateAndInterest";
+import { incrementDashboardMetrics, resetMonthlyRevenue } from "../utils/metrics_utils";
 
 const db = admin.firestore();
 
@@ -36,6 +37,9 @@ export const monthlyDebtProcessor = functions
 
     const batch = db.batch();
     let updatesCount = 0;
+
+    // Track interest added per provider: { providerId -> totalInterest }
+    const providerInterestMap = new Map<string, number>();
 
     for (const patientDoc of patientsWithDebtSnapshot.docs) {
       const patientId = patientDoc.id;
@@ -81,6 +85,9 @@ export const monthlyDebtProcessor = functions
           totalDebt: newTotalDebt,
         });
         updatesCount++;
+        // Accumulate interest per provider for dashboard update
+        const prev = providerInterestMap.get(providerId) ?? 0;
+        providerInterestMap.set(providerId, prev + totalInterestAddedToPatient);
       }
 
       // Queue WhatsApp Reminder
@@ -95,6 +102,18 @@ export const monthlyDebtProcessor = functions
       // For large scale, we should commit every 500 ops.
       await batch.commit();
     }
+
+    // For each provider: reset monthlyRevenue (new cycle) AND increment
+    // totalToCollect by the interest their patients just accrued.
+    const dashboardPromises = Array.from(providerInterestMap.entries()).map(
+      ([pid, interestAdded]) =>
+        Promise.all([
+          resetMonthlyRevenue(pid),
+          incrementDashboardMetrics(pid, { totalToCollect: interestAdded }),
+        ])
+    );
+    await Promise.all(dashboardPromises);
+    console.log(`[monthlyDebtProcessor] Updated dashboard for ${providerInterestMap.size} provider(s).`);
 
     console.log("Finished monthlyDebtProcessor");
     return null;

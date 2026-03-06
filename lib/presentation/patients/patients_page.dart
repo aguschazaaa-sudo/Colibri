@@ -1,3 +1,4 @@
+import 'package:cobrador/presentation/home/widgets/universal_search_delegate.dart';
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import 'widgets/add_patient_modal.dart';
 import 'widgets/patient_list_states.dart';
 import 'widgets/patient_list_tile.dart';
 
@@ -61,26 +63,26 @@ class PatientsPage extends ConsumerWidget {
         error: (e, st) => PatientErrorState(error: e),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Open add patient modal. Temporary quick test.
-        },
+        onPressed: () => showAddPatientModal(context, ref),
         child: const Icon(Icons.person_add_alt_1_rounded),
       ),
     );
   }
 }
 
-class _PatientAppBar extends StatelessWidget implements PreferredSizeWidget {
+class _PatientAppBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return AppBar(
       title: const Text('Pacientes'),
       actions: [
         IconButton(
           icon: const Icon(Icons.search),
-          onPressed: () {
-            // TODO: Implement search
-          },
+          onPressed:
+              () => showSearch(
+                context: context,
+                delegate: UniversalSearchDelegate(ref),
+              ),
         ),
       ],
     );

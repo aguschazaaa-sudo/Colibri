@@ -18,6 +18,11 @@ service cloud.firestore {
     match /providers/{providerId} {
       allow read, write: if isOwner(providerId);
       
+      // Subcolección de Métricas
+      match /metrics/{metricId} {
+        allow read: if isOwner(providerId);
+      }
+      
       // Subcolección de Pacientes — el path ya garantiza el aislamiento por provider.
       match /patients/{patientId} {
         allow read, update, delete: if isOwner(providerId);

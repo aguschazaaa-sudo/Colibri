@@ -1,6 +1,7 @@
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 
 import 'widgets/settings_list_tile.dart';
 
@@ -55,6 +56,14 @@ class SettingsPage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
+              ),
+              SettingsListTile(
+                icon: Icons.event_busy_rounded,
+                title: 'Días no laborables',
+                subtitle: 'Feriados en los que no se cobran turnos',
+                onTap: () {
+                  context.go('/settings/non-working-days');
+                },
               ),
               SettingsListTile(
                 icon: Icons.notifications_none_rounded,

@@ -25,6 +25,7 @@ void main() {
     email: 'test@example.com',
     name: 'Test Name',
     subscriptionStatus: SubscriptionStatus.active,
+    plan: SubscriptionPlan.basic,
     defaultMonthlyInterestRate: 0.10,
     createdAt: DateTime(2023, 1, 1),
   );

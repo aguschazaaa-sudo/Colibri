@@ -6,7 +6,7 @@ part of 'ledger_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$patientPaymentsHash() => r'ca418cd555624819c00a86355d2632c525096e82';
+String _$patientPaymentsHash() => r'4f476baa425f34fbd746c61a09d76cb0e6ce988f';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -184,7 +184,174 @@ class _PatientPaymentsProviderElement
   String get patientId => (origin as PatientPaymentsProvider).patientId;
 }
 
-String _$ledgerHash() => r'eca4151fff8e2fcb82892e87ae4623af7d558f9b';
+String _$patientRecurringAppointmentsHash() =>
+    r'91f84ddee40e07f7ca03a9dc66c4ea99e1f00f42';
+
+/// Provider extra para observar solo los turnos recurrentes de un paciente
+///
+/// Copied from [patientRecurringAppointments].
+@ProviderFor(patientRecurringAppointments)
+const patientRecurringAppointmentsProvider =
+    PatientRecurringAppointmentsFamily();
+
+/// Provider extra para observar solo los turnos recurrentes de un paciente
+///
+/// Copied from [patientRecurringAppointments].
+class PatientRecurringAppointmentsFamily
+    extends Family<AsyncValue<List<RecurringAppointment>>> {
+  /// Provider extra para observar solo los turnos recurrentes de un paciente
+  ///
+  /// Copied from [patientRecurringAppointments].
+  const PatientRecurringAppointmentsFamily();
+
+  /// Provider extra para observar solo los turnos recurrentes de un paciente
+  ///
+  /// Copied from [patientRecurringAppointments].
+  PatientRecurringAppointmentsProvider call({
+    required String providerId,
+    required String patientId,
+  }) {
+    return PatientRecurringAppointmentsProvider(
+      providerId: providerId,
+      patientId: patientId,
+    );
+  }
+
+  @override
+  PatientRecurringAppointmentsProvider getProviderOverride(
+    covariant PatientRecurringAppointmentsProvider provider,
+  ) {
+    return call(providerId: provider.providerId, patientId: provider.patientId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'patientRecurringAppointmentsProvider';
+}
+
+/// Provider extra para observar solo los turnos recurrentes de un paciente
+///
+/// Copied from [patientRecurringAppointments].
+class PatientRecurringAppointmentsProvider
+    extends AutoDisposeStreamProvider<List<RecurringAppointment>> {
+  /// Provider extra para observar solo los turnos recurrentes de un paciente
+  ///
+  /// Copied from [patientRecurringAppointments].
+  PatientRecurringAppointmentsProvider({
+    required String providerId,
+    required String patientId,
+  }) : this._internal(
+         (ref) => patientRecurringAppointments(
+           ref as PatientRecurringAppointmentsRef,
+           providerId: providerId,
+           patientId: patientId,
+         ),
+         from: patientRecurringAppointmentsProvider,
+         name: r'patientRecurringAppointmentsProvider',
+         debugGetCreateSourceHash:
+             const bool.fromEnvironment('dart.vm.product')
+                 ? null
+                 : _$patientRecurringAppointmentsHash,
+         dependencies: PatientRecurringAppointmentsFamily._dependencies,
+         allTransitiveDependencies:
+             PatientRecurringAppointmentsFamily._allTransitiveDependencies,
+         providerId: providerId,
+         patientId: patientId,
+       );
+
+  PatientRecurringAppointmentsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.providerId,
+    required this.patientId,
+  }) : super.internal();
+
+  final String providerId;
+  final String patientId;
+
+  @override
+  Override overrideWith(
+    Stream<List<RecurringAppointment>> Function(
+      PatientRecurringAppointmentsRef provider,
+    )
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PatientRecurringAppointmentsProvider._internal(
+        (ref) => create(ref as PatientRecurringAppointmentsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        providerId: providerId,
+        patientId: patientId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<List<RecurringAppointment>> createElement() {
+    return _PatientRecurringAppointmentsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PatientRecurringAppointmentsProvider &&
+        other.providerId == providerId &&
+        other.patientId == patientId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, providerId.hashCode);
+    hash = _SystemHash.combine(hash, patientId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PatientRecurringAppointmentsRef
+    on AutoDisposeStreamProviderRef<List<RecurringAppointment>> {
+  /// The parameter `providerId` of this provider.
+  String get providerId;
+
+  /// The parameter `patientId` of this provider.
+  String get patientId;
+}
+
+class _PatientRecurringAppointmentsProviderElement
+    extends AutoDisposeStreamProviderElement<List<RecurringAppointment>>
+    with PatientRecurringAppointmentsRef {
+  _PatientRecurringAppointmentsProviderElement(super.provider);
+
+  @override
+  String get providerId =>
+      (origin as PatientRecurringAppointmentsProvider).providerId;
+  @override
+  String get patientId =>
+      (origin as PatientRecurringAppointmentsProvider).patientId;
+}
+
+String _$ledgerHash() => r'a2148e82fde14cb5540b88d93fac31f7df3cfe2b';
 
 abstract class _$Ledger
     extends BuildlessAutoDisposeStreamNotifier<List<Appointment>> {

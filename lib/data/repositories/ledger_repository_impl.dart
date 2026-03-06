@@ -9,6 +9,7 @@ import 'package:cobrador/domain/ledger_repository.dart';
 import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/domain/recurring_appointment.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:uuid/uuid.dart';
 
 class LedgerRepositoryImpl implements LedgerRepository {
   final FirebaseFirestore _firestore;
@@ -65,39 +66,48 @@ class LedgerRepositoryImpl implements LedgerRepository {
   }
 
   @override
-  Stream<List<Payment>> watchPayments({
+  Future<Either<Failure, ({List<Payment> items, dynamic cursor})>>
+  getPaymentsPage({
     required String providerId,
-    required String patientId,
-  }) {
-    if (patientId.isEmpty) {
-      return _firestore
-          .collectionGroup('payments')
-          .where('providerId', isEqualTo: providerId)
-          .snapshots()
-          .handleError((error) {
-            print('🔥 Error in collectionGroup payments: $error');
-          })
-          .map((snapshot) {
-            return snapshot.docs.map((doc) {
-              final model = PaymentModel.fromJson(doc.data(), doc.id);
-              return model.toEntity();
-            }).toList();
-          });
-    }
+    String? patientId,
+    dynamic cursor,
+    int limit = 8,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query;
 
-    return _patientRef(providerId, patientId)
-        .collection('payments')
-        .where('providerId', isEqualTo: providerId)
-        .snapshots()
-        .handleError((error) {
-          print('🔥 Error in collection payments: $error');
-        })
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
+      if (patientId != null && patientId.isNotEmpty) {
+        query = _patientRef(providerId, patientId).collection('payments');
+      } else {
+        query = _firestore
+            .collectionGroup('payments')
+            .where('providerId', isEqualTo: providerId);
+      }
+
+      query = query.orderBy('date', descending: true).limit(limit);
+
+      if (cursor != null && cursor is DocumentSnapshot) {
+        query = query.startAfterDocument(cursor);
+      }
+
+      print(
+        '🔥 [Firestore] Ejecutando query: limit=$limit, hasCursor=${cursor != null}',
+      );
+      final snapshot = await query.get();
+      final items =
+          snapshot.docs.map((doc) {
             final model = PaymentModel.fromJson(doc.data(), doc.id);
             return model.toEntity();
           }).toList();
-        });
+
+      final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+
+      return Right((items: items, cursor: lastDoc));
+    } on FirebaseException catch (e) {
+      return Left(Failure.serverError(e.message ?? 'Firestore Error'));
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
   }
 
   @override
@@ -147,11 +157,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
     Appointment appointment,
   ) async {
     try {
-      final docRef =
-          _patientRef(
-            appointment.providerId,
-            appointment.patientId,
-          ).collection('appointments').doc();
+      final idempotencyKey = const Uuid().v4();
+      final docRef = _patientRef(
+        appointment.providerId,
+        appointment.patientId,
+      ).collection('appointments').doc(idempotencyKey);
+
       final entityWithId = appointment.copyWith(id: docRef.id);
       final model = AppointmentModel.fromEntity(entityWithId);
 
@@ -175,11 +186,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
     RecurringAppointment recurringAppointment,
   ) async {
     try {
-      final docRef =
-          _patientRef(
-            recurringAppointment.providerId,
-            recurringAppointment.patientId,
-          ).collection('recurring_appointments').doc();
+      final idempotencyKey = const Uuid().v4();
+      final docRef = _patientRef(
+        recurringAppointment.providerId,
+        recurringAppointment.patientId,
+      ).collection('recurring_appointments').doc(idempotencyKey);
+
       final entityWithId = recurringAppointment.copyWith(id: docRef.id);
       final model = RecurringAppointmentModel.fromEntity(entityWithId);
 
@@ -195,6 +207,27 @@ class LedgerRepositoryImpl implements LedgerRepository {
         );
       }
       return Left(Failure.serverError(e.message ?? 'Unknown Firebase Error'));
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteAppointment(
+    String providerId,
+    String patientId,
+    String appointmentId,
+  ) async {
+    try {
+      await _patientRef(
+        providerId,
+        patientId,
+      ).collection('appointments').doc(appointmentId).delete();
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(
+        Failure.serverError(e.message ?? 'Error deleting appointment'),
+      );
     } catch (e) {
       return Left(Failure.serverError(e.toString()));
     }
@@ -227,12 +260,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
   Future<Either<Failure, Payment>> registerPayment(Payment payment) async {
     try {
       final callable = _functions.httpsCallable('payments-registerPayment');
+      final idempotencyKey = const Uuid().v4();
 
       final result = await callable.call(<String, dynamic>{
         'patientId': payment.patientId,
         'amount': payment.amount,
         if (payment.appointmentId != null)
           'appointmentId': payment.appointmentId,
+        'idempotencyKey': idempotencyKey,
       });
 
       final paymentId = result.data['paymentId'] as String;
@@ -247,6 +282,25 @@ class LedgerRepositoryImpl implements LedgerRepository {
       return Left(
         Failure.serverError(e.message ?? 'Cloud Function Error: ${e.code}'),
       );
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deletePayment(
+    String providerId,
+    String patientId,
+    String paymentId,
+  ) async {
+    try {
+      await _patientRef(
+        providerId,
+        patientId,
+      ).collection('payments').doc(paymentId).delete();
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(Failure.serverError(e.message ?? 'Error deleting payment'));
     } catch (e) {
       return Left(Failure.serverError(e.toString()));
     }

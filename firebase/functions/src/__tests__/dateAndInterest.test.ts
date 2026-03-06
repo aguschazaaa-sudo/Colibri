@@ -61,6 +61,18 @@ describe("computeNextDate", () => {
     });
   });
 
+  describe("monthly (standard - alias for monthly_pattern)", () => {
+    it("should behave exactly like monthly_pattern", () => {
+      // Feb 10, 2026 is a Tuesday (2nd Tuesday of Feb)
+      const base = new Date(2026, 1, 10);
+      const next = computeNextDate(base, "monthly");
+      
+      expect(next.getMonth()).toBe(2); // March
+      expect(next.getDay()).toBe(2); // Tuesday
+      expect(Math.ceil(next.getDate() / 7)).toBe(2); // 2nd occurrence
+    });
+  });
+
   describe("monthly_pattern (Nth weekday of the month)", () => {
     it("should find the 2nd Tuesday of March given 2nd Tuesday of February", () => {
       // Feb 10, 2026 is a Tuesday (2nd Tuesday of Feb)

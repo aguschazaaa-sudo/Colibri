@@ -45,5 +45,6 @@ ProviderRepository providerRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 CommunicationLogRepository communicationLogRepository(Ref ref) {
   final firestore = ref.watch(firebaseFirestoreProvider);
-  return CommunicationLogRepositoryImpl(firestore);
+  final functions = ref.watch(firebaseFunctionsProvider);
+  return CommunicationLogRepositoryImpl(firestore, functions);
 }

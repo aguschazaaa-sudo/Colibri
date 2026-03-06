@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { incrementDashboardMetrics } from "../utils/metrics_utils";
 
 const db = admin.firestore();
 
@@ -13,6 +14,7 @@ const db = admin.firestore();
  *   1. Increases the patient's totalDebt by the appointment's totalAmount.
  *   2. If the patient has a positive balance (saldo a favor), auto-applies it
  *      to the new appointment (partial or full liquidation).
+ *   3. Increments the dashboard's `totalToCollect` by the net debt created.
  */
 export const onAppointmentCreated = functions
   .runWith({ maxInstances: 10 })
@@ -44,6 +46,10 @@ export const onAppointmentCreated = functions
       .collection("appointments")
       .doc(appointmentId);
 
+    // Track how much net debt was added so we can update the dashboard after
+    // the transaction. Must be defined outside of the transaction closure.
+    let netDebtCreated = 0;
+
     try {
       await db.runTransaction(async (transaction) => {
         const patientDoc = await transaction.get(patientRef);
@@ -58,16 +64,15 @@ export const onAppointmentCreated = functions
         const currentTotalDebt: number = patientData.totalDebt || 0;
 
         if (currentBalance >= totalAmount) {
-          // Balance covers the entire appointment → auto-liquidate
+          // Balance covers the entire appointment → auto-liquidate, net debt = 0
           transaction.update(appointmentRef, {
             amountPaid: totalAmount,
             status: "liquidated",
           });
-
           transaction.update(patientRef, {
             balance: currentBalance - totalAmount,
-            // totalDebt doesn't change: debt was created and instantly liquidated
           });
+          netDebtCreated = 0;
 
           console.log(
             `[onAppointmentCreated] Auto-liquidated appointment ${appointmentId}. ` +
@@ -79,22 +84,23 @@ export const onAppointmentCreated = functions
             amountPaid: currentBalance,
             status: "unpaid",
           });
-
-          const netDebtIncrease = totalAmount - currentBalance;
+          const partialDebt = totalAmount - currentBalance;
           transaction.update(patientRef, {
             balance: 0,
-            totalDebt: currentTotalDebt + netDebtIncrease,
+            totalDebt: currentTotalDebt + partialDebt,
           });
+          netDebtCreated = partialDebt;
 
           console.log(
             `[onAppointmentCreated] Partial balance applied to ${appointmentId}. ` +
-            `Balance used: ${currentBalance}. Net debt increase: ${netDebtIncrease}`
+            `Balance used: ${currentBalance}. Net debt increase: ${partialDebt}`
           );
         } else {
           // No balance → full debt increase
           transaction.update(patientRef, {
             totalDebt: currentTotalDebt + totalAmount,
           });
+          netDebtCreated = totalAmount;
 
           console.log(
             `[onAppointmentCreated] Debt increased for patient ${patientId}. ` +
@@ -102,6 +108,12 @@ export const onAppointmentCreated = functions
           );
         }
       });
+
+      // Update the provider's pre-calculated dashboard metrics.
+      // Done outside the transaction; dashboard is a best-effort metric.
+      if (netDebtCreated > 0) {
+        await incrementDashboardMetrics(providerId, { totalToCollect: netDebtCreated });
+      }
     } catch (error) {
       console.error(`[onAppointmentCreated] Transaction failed for ${appointmentId}:`, error);
       throw error; // Re-throw to trigger retry

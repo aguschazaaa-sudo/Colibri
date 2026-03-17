@@ -65,8 +65,6 @@ class TopDebtorsSection extends ConsumerWidget {
                       debtorId: debtor.id,
                       name: debtor.name,
                       debtAmount: currencyFormat.format(debtor.totalDebt),
-                      unpaidCount:
-                          1, // Temporarily hardcoded for UI mockup, real domain should provide this
                     )
                     .animate(delay: (100 * index).ms)
                     .fadeIn(duration: 400.ms, curve: Curves.easeOut)
@@ -92,7 +90,6 @@ class TopDebtorsSection extends ConsumerWidget {
                       debtorId: '',
                       name: 'Cargando nombre...',
                       debtAmount: '\$ 00,000.00',
-                      unpaidCount: 1,
                     );
                   },
                 ),
@@ -123,13 +120,11 @@ class _DebtorTile extends StatelessWidget {
   final String debtorId;
   final String name;
   final String debtAmount;
-  final int unpaidCount;
 
   const _DebtorTile({
     required this.debtorId,
     required this.name,
     required this.debtAmount,
-    required this.unpaidCount,
   });
 
   @override
@@ -137,32 +132,25 @@ class _DebtorTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    // Rule: Yellow for up to 2 appointments, Red for 3+
-    final isCritical = unpaidCount >= 3;
     final alertColor =
         colorScheme.inversePrimary; // A variation for warning state from theme
     final alertContainer = colorScheme.surfaceContainerHighest;
 
-    final indicatorColor = isCritical ? colorScheme.error : alertColor;
-    final indicatorContainerColor =
-        isCritical ? colorScheme.errorContainer : alertContainer;
+    final indicatorColor = alertColor;
+    final indicatorContainerColor = alertContainer;
 
     return ListTile(
       contentPadding: AppSpacing.edgeInsetsH,
       leading: CircleAvatar(
         backgroundColor: colorScheme.surfaceContainerHighest,
         child: Text(
-          name.substring(0, 1),
+          name.isNotEmpty ? name.substring(0, 1) : '?',
           style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
       ),
       title: Text(
         name,
         style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        '$unpaidCount turno${unpaidCount > 1 ? 's' : ''} sin pagar',
-        style: textTheme.bodySmall,
       ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(

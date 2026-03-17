@@ -3,47 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:cobrador/presentation/home/widgets/dashboard_metrics.dart';
-import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
+import 'package:cobrador/presentation/home/widgets/home_action_fab.dart';
 import 'package:cobrador/presentation/home/widgets/today_appointments.dart';
 import 'package:cobrador/presentation/home/widgets/top_debtors.dart';
-import 'package:cobrador/presentation/home/widgets/home_action_fab.dart';
 import 'package:cobrador/presentation/home/widgets/universal_search_delegate.dart';
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 import 'package:cobrador/presentation/providers/top_debtors_provider.dart';
+import 'package:cobrador/presentation/widgets/app_shell.dart';
 
-import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
-
-/// Home page — shell for the authenticated experience.
-///
-/// Shows dashboard metrics, today's appointments, and top debtors.
+/// Home page — registers its title + FAB in the AppShell and returns its body.
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AdaptiveScaffold(
-      appBar: AppBar(
-        title: const Text('Colibrí'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_rounded),
-            tooltip: 'Buscar paciente',
-            onPressed: () {
-              showSearch(
-                context: context,
-                delegate: UniversalSearchDelegate(ref),
-              );
-            },
-          ),
-        ],
-      ),
-      drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
-      body: const _HomeBody(),
+    ref.registerShell(
+      title: 'Colibrí',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.search_rounded),
+          tooltip: 'Buscar paciente',
+          onPressed: () {
+            showSearch(context: context, delegate: UniversalSearchDelegate(ref));
+          },
+        ),
+      ],
       floatingActionButton: const HomeActionFab(),
     );
+
+    return const _HomeBody();
   }
 }
 
@@ -63,7 +53,6 @@ class _HomeBody extends ConsumerWidget {
           ref.invalidate(patientsProvider(providerId));
         }
 
-        // Small delay to let the UI show the refresh animation
         await Future.delayed(const Duration(milliseconds: 500));
       },
       child: ListView(

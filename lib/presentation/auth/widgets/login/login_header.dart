@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:cobrador/presentation/auth/widgets/auth_logo.dart';
 
 class LoginHeader extends StatelessWidget {
   const LoginHeader({super.key});
@@ -11,7 +12,7 @@ class LoginHeader extends StatelessWidget {
 
     return Column(
       children: [
-        Icon(Icons.hive_rounded, size: 48, color: colorScheme.primary),
+        const AuthLogo(),
         const SizedBox(height: AppSpacing.sm),
         Text(
           'Bienvenido a Colibrí',

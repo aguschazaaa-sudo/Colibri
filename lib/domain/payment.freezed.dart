@@ -21,6 +21,7 @@ mixin _$Payment {
   String get patientId => throw _privateConstructorUsedError;
   String get providerId => throw _privateConstructorUsedError;
   String? get appointmentId => throw _privateConstructorUsedError;
+  String? get idempotencyKey => throw _privateConstructorUsedError;
   double get amount => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
 
@@ -40,6 +41,7 @@ abstract class $PaymentCopyWith<$Res> {
     String patientId,
     String providerId,
     String? appointmentId,
+    String? idempotencyKey,
     double amount,
     DateTime date,
   });
@@ -64,6 +66,7 @@ class _$PaymentCopyWithImpl<$Res, $Val extends Payment>
     Object? patientId = null,
     Object? providerId = null,
     Object? appointmentId = freezed,
+    Object? idempotencyKey = freezed,
     Object? amount = null,
     Object? date = null,
   }) {
@@ -88,6 +91,11 @@ class _$PaymentCopyWithImpl<$Res, $Val extends Payment>
                 freezed == appointmentId
                     ? _value.appointmentId
                     : appointmentId // ignore: cast_nullable_to_non_nullable
+                        as String?,
+            idempotencyKey:
+                freezed == idempotencyKey
+                    ? _value.idempotencyKey
+                    : idempotencyKey // ignore: cast_nullable_to_non_nullable
                         as String?,
             amount:
                 null == amount
@@ -118,6 +126,7 @@ abstract class _$$PaymentImplCopyWith<$Res> implements $PaymentCopyWith<$Res> {
     String patientId,
     String providerId,
     String? appointmentId,
+    String? idempotencyKey,
     double amount,
     DateTime date,
   });
@@ -141,6 +150,7 @@ class __$$PaymentImplCopyWithImpl<$Res>
     Object? patientId = null,
     Object? providerId = null,
     Object? appointmentId = freezed,
+    Object? idempotencyKey = freezed,
     Object? amount = null,
     Object? date = null,
   }) {
@@ -166,6 +176,11 @@ class __$$PaymentImplCopyWithImpl<$Res>
                 ? _value.appointmentId
                 : appointmentId // ignore: cast_nullable_to_non_nullable
                     as String?,
+        idempotencyKey:
+            freezed == idempotencyKey
+                ? _value.idempotencyKey
+                : idempotencyKey // ignore: cast_nullable_to_non_nullable
+                    as String?,
         amount:
             null == amount
                 ? _value.amount
@@ -189,6 +204,7 @@ class _$PaymentImpl implements _Payment {
     required this.patientId,
     required this.providerId,
     this.appointmentId,
+    this.idempotencyKey,
     required this.amount,
     required this.date,
   });
@@ -202,13 +218,15 @@ class _$PaymentImpl implements _Payment {
   @override
   final String? appointmentId;
   @override
+  final String? idempotencyKey;
+  @override
   final double amount;
   @override
   final DateTime date;
 
   @override
   String toString() {
-    return 'Payment(id: $id, patientId: $patientId, providerId: $providerId, appointmentId: $appointmentId, amount: $amount, date: $date)';
+    return 'Payment(id: $id, patientId: $patientId, providerId: $providerId, appointmentId: $appointmentId, idempotencyKey: $idempotencyKey, amount: $amount, date: $date)';
   }
 
   @override
@@ -223,6 +241,8 @@ class _$PaymentImpl implements _Payment {
                 other.providerId == providerId) &&
             (identical(other.appointmentId, appointmentId) ||
                 other.appointmentId == appointmentId) &&
+            (identical(other.idempotencyKey, idempotencyKey) ||
+                other.idempotencyKey == idempotencyKey) &&
             (identical(other.amount, amount) || other.amount == amount) &&
             (identical(other.date, date) || other.date == date));
   }
@@ -234,6 +254,7 @@ class _$PaymentImpl implements _Payment {
     patientId,
     providerId,
     appointmentId,
+    idempotencyKey,
     amount,
     date,
   );
@@ -253,6 +274,7 @@ abstract class _Payment implements Payment {
     required final String patientId,
     required final String providerId,
     final String? appointmentId,
+    final String? idempotencyKey,
     required final double amount,
     required final DateTime date,
   }) = _$PaymentImpl;
@@ -265,6 +287,8 @@ abstract class _Payment implements Payment {
   String get providerId;
   @override
   String? get appointmentId;
+  @override
+  String? get idempotencyKey;
   @override
   double get amount;
   @override

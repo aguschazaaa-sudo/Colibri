@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 
 /// Simple footer with copyright and legal links.
@@ -25,9 +26,15 @@ class LandingFooter extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _FooterLink(label: 'Términos', onTap: () {}),
+              _FooterLink(
+                label: 'Términos',
+                onTap: () => context.push('/terms'),
+              ),
               const SizedBox(width: AppSpacing.lg),
-              _FooterLink(label: 'Privacidad', onTap: () {}),
+              _FooterLink(
+                label: 'Privacidad',
+                onTap: () => context.push('/privacy'),
+              ),
               const SizedBox(width: AppSpacing.lg),
               _FooterLink(label: 'Contacto', onTap: () {}),
             ],

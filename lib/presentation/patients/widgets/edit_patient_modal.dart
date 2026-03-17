@@ -4,6 +4,7 @@ import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cobrador/presentation/widgets/action_button.dart';
 
 /// Shows the [EditPatientModal] as a bottom sheet.
 Future<void> showEditPatientModal(
@@ -46,8 +47,6 @@ class _EditPatientModalState extends ConsumerState<EditPatientModal> {
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
 
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
@@ -70,8 +69,6 @@ class _EditPatientModalState extends ConsumerState<EditPatientModal> {
     final auth = widget.parentRef.read(firebaseAuthProvider);
     final providerId = auth.currentUser?.uid;
     if (providerId == null) return;
-
-    setState(() => _isLoading = true);
 
     try {
       final updatedPatient = widget.patient.copyWith(
@@ -106,8 +103,6 @@ class _EditPatientModalState extends ConsumerState<EditPatientModal> {
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -188,16 +183,17 @@ class _EditPatientModalState extends ConsumerState<EditPatientModal> {
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: AppSpacing.lg),
-            FilledButton.icon(
-              onPressed: _isLoading ? null : _submit,
-              icon:
-                  _isLoading
-                      ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Icon(Icons.check_rounded),
-              label: Text(_isLoading ? 'Guardando...' : 'Guardar Cambios'),
+            ActionButton(
+              onPressed: _submit,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_rounded),
+                  SizedBox(width: AppSpacing.sm),
+                  Text('Guardar Cambios'),
+                ],
+              ),
             ),
           ],
         ),

@@ -4,6 +4,12 @@ import 'package:cobrador/providers/auth_providers.dart';
 import 'package:cobrador/domain/provider.dart' as domain;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:cobrador/domain/subscription_pricing.dart';
+import 'package:cobrador/presentation/providers/subscription_pricing_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cobrador/presentation/widgets/action_button.dart';
 
 class SubscriptionPage extends ConsumerWidget {
   const SubscriptionPage({super.key});
@@ -26,7 +32,7 @@ class SubscriptionPage extends ConsumerWidget {
         ),
         child: SafeArea(
           child: authState.when(
-            data: (provider) => _SubscriptionContent(provider: provider),
+            data: (provider) => _SubscriptionPricingLayer(provider: provider),
             loading: () => const Center(child: CircularProgressIndicator()),
             error:
                 (err, stack) => Center(
@@ -61,10 +67,76 @@ class SubscriptionPage extends ConsumerWidget {
   }
 }
 
-class _SubscriptionContent extends StatelessWidget {
+class _SubscriptionPricingLayer extends ConsumerWidget {
   final domain.Provider? provider;
 
-  const _SubscriptionContent({required this.provider});
+  const _SubscriptionPricingLayer({required this.provider});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pricingAsync = ref.watch(subscriptionPricingProvider);
+
+    return pricingAsync.when(
+      data:
+          (pricing) =>
+              _SubscriptionContent(provider: provider, pricing: pricing),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error:
+          (err, stack) => _SubscriptionContent(
+            provider: provider,
+            // Fallback pricing if DB document is missing but user provided values
+            pricing: null,
+          ),
+    );
+  }
+}
+
+class _SubscriptionContent extends StatelessWidget {
+  final domain.Provider? provider;
+  final SubscriptionPricing? pricing;
+
+  const _SubscriptionContent({required this.provider, this.pricing});
+
+  Future<void> _handleSubscription(BuildContext context, bool isPremium) async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      // In the backend, the module is "subscriptions" and the function is "createSubscription"
+      final callable = functions.httpsCallable(
+        'subscriptions-createSubscription',
+      );
+      final response = await callable.call(<String, dynamic>{
+        'planId': isPremium ? 'premium' : 'basic',
+      });
+
+      final String? url = response.data['init_point'];
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+            webOnlyWindowName: '_self',
+          );
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'No se pudo abrir el navegador para procesar el pago.',
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hubo un error al generar el pago: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +144,41 @@ class _SubscriptionContent extends StatelessWidget {
         provider?.subscriptionExpiresAt != null
             ? provider!.subscriptionExpiresAt!.difference(DateTime.now()).inDays
             : 0;
+
+    final currencyFormat = NumberFormat.currency(
+      symbol: r'$',
+      decimalDigits: 0,
+      locale: 'es_AR',
+    );
+
+    final basicPriceOriginal =
+        pricing != null
+            ? currencyFormat.format(pricing!.basic.priceArs)
+            : r'$10.000'; // Fallback
+    final premiumPriceOriginal =
+        pricing != null
+            ? currencyFormat.format(pricing!.premium.priceArs)
+            : r'$20.000'; // Fallback
+
+    final discountPercentage = provider?.discountPercentage ?? 0.0;
+
+    final basicPriceFinal =
+        pricing != null
+            ? currencyFormat.format(
+              pricing!.basic.priceArs * (1 - discountPercentage),
+            )
+            : currencyFormat.format(
+              10000 * (1 - discountPercentage),
+            ); // Fallback
+
+    final premiumPriceFinal =
+        pricing != null
+            ? currencyFormat.format(
+              pricing!.premium.priceArs * (1 - discountPercentage),
+            )
+            : currencyFormat.format(
+              20000 * (1 - discountPercentage),
+            ); // Fallback
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -98,7 +205,11 @@ class _SubscriptionContent extends StatelessWidget {
                             Expanded(
                               child: _PlanCard(
                                     title: 'Plan Básico',
-                                    price: '\$9.99/mes',
+                                    price: '$basicPriceFinal/mes',
+                                    originalPrice:
+                                        discountPercentage > 0
+                                            ? '$basicPriceOriginal/mes'
+                                            : null,
                                     description:
                                         'Ideal para empezar a organizar tus cobros.',
                                     features: const [
@@ -108,7 +219,10 @@ class _SubscriptionContent extends StatelessWidget {
                                       'Soporte por email',
                                     ],
                                     isPremium: false,
-                                    onPressed: () {},
+                                    isStretch: true,
+                                    onPressed:
+                                        () =>
+                                            _handleSubscription(context, false),
                                   )
                                   .animate()
                                   .fadeIn(duration: 600.ms)
@@ -118,7 +232,11 @@ class _SubscriptionContent extends StatelessWidget {
                             Expanded(
                               child: _PlanCard(
                                     title: 'Plan Premium',
-                                    price: '\$19.99/mes',
+                                    price: '$premiumPriceFinal/mes',
+                                    originalPrice:
+                                        discountPercentage > 0
+                                            ? '$premiumPriceOriginal/mes'
+                                            : null,
                                     description:
                                         'Potencia tu negocio con automatizaciones.',
                                     features: const [
@@ -129,7 +247,10 @@ class _SubscriptionContent extends StatelessWidget {
                                       'Soporte prioritario',
                                     ],
                                     isPremium: true,
-                                    onPressed: () {},
+                                    isStretch: true,
+                                    onPressed:
+                                        () =>
+                                            _handleSubscription(context, true),
                                   )
                                   .animate()
                                   .fadeIn(duration: 600.ms, delay: 200.ms)
@@ -143,7 +264,11 @@ class _SubscriptionContent extends StatelessWidget {
                         children: [
                           _PlanCard(
                                 title: 'Plan Básico',
-                                price: '\$9.99/mes',
+                                price: '$basicPriceFinal/mes',
+                                originalPrice:
+                                    discountPercentage > 0
+                                        ? '$basicPriceOriginal/mes'
+                                        : null,
                                 description:
                                     'Ideal para empezar a organizar tus cobros.',
                                 features: const [
@@ -153,9 +278,8 @@ class _SubscriptionContent extends StatelessWidget {
                                   'Soporte por email',
                                 ],
                                 isPremium: false,
-                                onPressed: () {
-                                  // TODO: Mercado Pago Basic
-                                },
+                                onPressed:
+                                    () => _handleSubscription(context, false),
                               )
                               .animate()
                               .fadeIn(duration: 600.ms)
@@ -163,7 +287,11 @@ class _SubscriptionContent extends StatelessWidget {
                           const SizedBox(height: 24),
                           _PlanCard(
                                 title: 'Plan Premium',
-                                price: '\$19.99/mes',
+                                price: '$premiumPriceFinal/mes',
+                                originalPrice:
+                                    discountPercentage > 0
+                                        ? '$premiumPriceOriginal/mes'
+                                        : null,
                                 description:
                                     'Potencia tu negocio con automatizaciones.',
                                 features: const [
@@ -174,9 +302,8 @@ class _SubscriptionContent extends StatelessWidget {
                                   'Soporte prioritario',
                                 ],
                                 isPremium: true,
-                                onPressed: () {
-                                  // TODO: Mercado Pago Premium
-                                },
+                                onPressed:
+                                    () => _handleSubscription(context, true),
                               )
                               .animate()
                               .fadeIn(duration: 600.ms, delay: 200.ms)
@@ -250,18 +377,22 @@ class _HeaderSection extends StatelessWidget {
 class _PlanCard extends StatelessWidget {
   final String title;
   final String price;
+  final String? originalPrice;
   final String description;
   final List<String> features;
   final bool isPremium;
-  final VoidCallback onPressed;
+  final Future<void> Function()? onPressed;
+  final bool isStretch;
 
   const _PlanCard({
     required this.title,
     required this.price,
+    this.originalPrice,
     required this.description,
     required this.features,
     required this.isPremium,
     required this.onPressed,
+    this.isStretch = false,
   });
 
   @override
@@ -327,14 +458,27 @@ class _PlanCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          if (originalPrice != null)
+            Text(
+              originalPrice!,
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.lineThrough,
+                color:
+                    isPremium
+                        ? colorScheme.onPrimary.withOpacity(0.5)
+                        : colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ),
+            ),
           Text(
             price,
             style: GoogleFonts.outfit(
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.w600,
               color:
                   isPremium
-                      ? colorScheme.onPrimary.withOpacity(0.8)
+                      ? colorScheme.onPrimary.withOpacity(0.9)
                       : colorScheme.primary,
             ),
           ),
@@ -352,10 +496,10 @@ class _PlanCard extends StatelessWidget {
           ...features.map(
             (feature) => _FeatureRow(feature: feature, isPremium: isPremium),
           ),
-          const SizedBox(height: 32),
+          if (isStretch) const Spacer() else const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
+            child: ActionButton(
               onPressed: onPressed,
               style: FilledButton.styleFrom(
                 backgroundColor:

@@ -3,6 +3,10 @@ import 'failure.dart';
 import 'communication_log.dart';
 
 abstract class CommunicationLogRepository {
+  /// Streams the most recent communication logs for the given provider,
+  /// ordered by sentAt descending.
+  Stream<List<CommunicationLog>> watchCommunicationLogs(String providerId);
+
   /// Enqueues a WhatsApp reminder for a specific patient.
   /// The backend Cloud Function will process this log.
   Future<Either<Failure, CommunicationLog>> enqueueWhatsAppReminder({

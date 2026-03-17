@@ -9,13 +9,15 @@ const RegisterPaymentRequestSchema = z.object({
   patientId: z.string().min(1),
   amount: z.number().positive(),
   appointmentId: z.string().optional(),
-  idempotencyKey: z.string().optional(),
+  idempotencyKey: z.string().min(1),
 });
 
 /**
  * Callable Cloud Function: registerPayment
  *
  * Validates the request and creates a payment document.
+ * Uses a Firestore transaction with the idempotencyKey as doc ID
+ * to guarantee exactly-once payment creation (prevents double-click duplicates).
  * The actual FIFO distribution and totalDebt/balance updates are handled
  * by the `onPaymentCreated` Firestore trigger.
  */
@@ -69,23 +71,31 @@ export const registerPayment = functions
         );
       }
 
-      // 4. Create Payment Record (the onPaymentCreated trigger handles the rest)
-      // Using idempotencyKey as the doc ID prevents duplicate triggers if called twice rapidly
-      const newPaymentRef = payload.idempotencyKey
-        ? patientRef.collection("payments").doc(payload.idempotencyKey)
-        : patientRef.collection("payments").doc();
+      // 4. Create Payment Record using transaction for idempotency
+      // The idempotencyKey is used as the document ID so that
+      // concurrent/duplicate calls produce exactly one document.
+      const paymentRef = patientRef
+        .collection("payments")
+        .doc(payload.idempotencyKey);
 
-      await newPaymentRef.set({
-        patientId: payload.patientId,
-        providerId: providerId,
-        appointmentId: payload.appointmentId || null,
-        amount: payload.amount,
-        date: admin.firestore.FieldValue.serverTimestamp(),
+      await db.runTransaction(async (tx) => {
+        const existingDoc = await tx.get(paymentRef);
+        if (existingDoc.exists) {
+          // Already processed — idempotent no-op
+          return;
+        }
+        tx.set(paymentRef, {
+          patientId: payload.patientId,
+          providerId: providerId,
+          appointmentId: payload.appointmentId || null,
+          amount: payload.amount,
+          date: admin.firestore.FieldValue.serverTimestamp(),
+        });
       });
 
       return {
         success: true,
-        paymentId: newPaymentRef.id,
+        paymentId: paymentRef.id,
       };
     } catch (error: any) {
       if (error instanceof functions.https.HttpsError) {

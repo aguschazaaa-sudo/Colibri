@@ -5,6 +5,7 @@ import 'package:cobrador/presentation/landing/widgets/problem_section.dart';
 import 'package:cobrador/presentation/landing/widgets/features_section.dart';
 import 'package:cobrador/presentation/landing/widgets/how_it_works_section.dart';
 import 'package:cobrador/presentation/landing/widgets/cta_section.dart';
+import 'package:cobrador/presentation/landing/widgets/pricing_section.dart';
 import 'package:cobrador/presentation/landing/widgets/landing_footer.dart';
 
 /// Landing page — the public entry point for both patients and professionals.
@@ -16,20 +17,18 @@ class LandingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            LandingNavbar(),
-            HeroSection(),
-            ProblemSection(),
-            FeaturesSection(),
-            HowItWorksSection(),
-            CtaSection(),
-            LandingFooter(),
-          ],
-        ),
+    return Scaffold(
+      body: ListView(
+        children: const [
+          LandingNavbar(),
+          HeroSection(),
+          ProblemSection(),
+          FeaturesSection(),
+          HowItWorksSection(),
+          PricingSection(),
+          CtaSection(),
+          LandingFooter(),
+        ],
       ),
     );
   }

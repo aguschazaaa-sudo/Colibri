@@ -2,14 +2,12 @@ import 'package:cobrador/presentation/home/widgets/dashboard_metrics.dart';
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/payments_provider.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:cobrador/presentation/widgets/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'widgets/payment_history_item.dart';
-
-import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
-import 'package:cobrador/presentation/widgets/adaptive_scaffold.dart';
 
 class FinancesPage extends ConsumerWidget {
   const FinancesPage({super.key});
@@ -21,10 +19,15 @@ class FinancesPage extends ConsumerWidget {
     final providerId = auth.currentUser?.uid ?? '';
     final paymentsState = ref.watch(paymentsProvider(providerId));
 
-    return AdaptiveScaffold(
-      appBar: AppBar(title: const Text('Finanzas')),
-      drawer: HomeDrawer(isPermanent: MediaQuery.sizeOf(context).width >= 900),
-      body: CustomScrollView(
+    ref.registerShell(title: 'Finanzas');
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(paymentsProvider(providerId));
+        await Future.delayed(const Duration(milliseconds: 600));
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           const SliverPadding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
@@ -43,17 +46,18 @@ class FinancesPage extends ConsumerWidget {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
           paymentsState.status.when(
-            data:
-                (_) =>
-                    _buildPaymentsList(context, ref, paymentsState, providerId),
-            loading:
-                () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-            error:
-                (err, stack) => SliverToBoxAdapter(
-                  child: Center(child: Text('Error: $err')),
-                ),
+            data: (_) => _buildPaymentsList(
+              context,
+              ref,
+              paymentsState,
+              providerId,
+            ),
+            loading: () => const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (err, stack) => SliverToBoxAdapter(
+              child: Center(child: Text('Error: $err')),
+            ),
           ),
         ],
       ),
@@ -76,41 +80,42 @@ class FinancesPage extends ConsumerWidget {
     }
 
     return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        if (index >= state.payments.length) {
-          if (state.hasMore) {
-            // Trigger next page fetch
-            Future.microtask(
-              () =>
-                  ref
-                      .read(paymentsProvider(providerId).notifier)
-                      .fetchNextPage(),
-            );
-            return const Padding(
-              padding: EdgeInsets.all(AppSpacing.md),
-              child: Center(child: CircularProgressIndicator()),
-            );
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index >= state.payments.length) {
+            if (state.hasMore) {
+              Future.microtask(
+                () => ref
+                    .read(paymentsProvider(providerId).notifier)
+                    .fetchNextPage(),
+              );
+              return const Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return null;
           }
-          return null;
-        }
 
-        final payment = state.payments[index];
-        return Column(
-          children: [
-            PaymentHistoryItem(payment: payment)
-                .animate(delay: (20 * (index % 8)).ms)
-                .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-                .slideX(
-                  begin: 0.05,
-                  end: 0,
-                  duration: 400.ms,
-                  curve: Curves.easeOut,
-                ),
-            if (index < state.payments.length - 1 || state.hasMore)
-              const Divider(height: 1, indent: 72),
-          ],
-        );
-      }, childCount: state.payments.length + (state.hasMore ? 1 : 0)),
+          final payment = state.payments[index];
+          return Column(
+            children: [
+              PaymentHistoryItem(payment: payment)
+                  .animate(delay: (20 * (index % 8)).ms)
+                  .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                  .slideX(
+                    begin: 0.05,
+                    end: 0,
+                    duration: 400.ms,
+                    curve: Curves.easeOut,
+                  ),
+              if (index < state.payments.length - 1 || state.hasMore)
+                const Divider(height: 1, indent: 72),
+            ],
+          );
+        },
+        childCount: state.payments.length + (state.hasMore ? 1 : 0),
+      ),
     );
   }
 }

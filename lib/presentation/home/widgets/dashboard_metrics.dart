@@ -70,6 +70,7 @@ class DashboardMetrics extends ConsumerWidget {
                   icon: Icons.check_circle_outline,
                   color: Theme.of(context).colorScheme.primary,
                   isAlert: false,
+                  subtitle: 'Se resetea el 28\nde cada mes',
                 )
                 .animate(delay: 100.ms)
                 .fadeIn(duration: 400.ms, curve: Curves.easeOut)
@@ -92,6 +93,7 @@ class _MetricCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isAlert;
+  final String? subtitle;
 
   const _MetricCard({
     required this.title,
@@ -99,6 +101,7 @@ class _MetricCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.isAlert,
+    this.subtitle,
   });
 
   @override
@@ -125,7 +128,10 @@ class _MetricCard extends StatelessWidget {
         side: BorderSide(color: cardColor.withValues(alpha: 0.6)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.md,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -143,13 +149,37 @@ class _MetricCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              amount,
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: onCardColor,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                amount,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: onCardColor,
+                ),
               ),
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                subtitle!,
+                maxLines: 2,
+                overflow: TextOverflow.visible,
+                style: textTheme.labelSmall?.copyWith(
+                  color: onCardColor.withValues(alpha: 0.8),
+                  fontSize: 10,
+                  height: 1.1,
+                ),
+              ),
+            ] else ...[
+              // Spacer to maintain same height as the card with subtitle
+              const SizedBox(height: AppSpacing.xs),
+              const Text(
+                '\n', // Two lines matching the subtitle
+                style: TextStyle(fontSize: 10, height: 1.1),
+              ),
+            ],
           ],
         ),
       ),

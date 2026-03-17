@@ -1,6 +1,8 @@
 import 'package:cobrador/domain/dashboard_report.dart';
 import 'package:cobrador/domain/failure.dart';
 import 'package:cobrador/domain/provider.dart';
+import 'package:cobrador/domain/subscription_pricing.dart';
+import 'vacation_period.dart';
 import 'package:fpdart/fpdart.dart';
 
 abstract class ProviderRepository {
@@ -25,4 +27,19 @@ abstract class ProviderRepository {
     String providerId,
     String day,
   );
+
+  /// Adds a vacation period to the provider's list.
+  Future<Either<Failure, Unit>> addVacationPeriod(
+    String providerId,
+    VacationPeriod period,
+  );
+
+  /// Removes a vacation period from the provider's list.
+  Future<Either<Failure, Unit>> removeVacationPeriod(
+    String providerId,
+    VacationPeriod period,
+  );
+
+  /// Watches the global subscription pricing document in `metadata/pricing`.
+  Stream<SubscriptionPricing> watchSubscriptionPricing();
 }

@@ -1,5 +1,6 @@
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
+import 'package:cobrador/presentation/widgets/action_button.dart';
 
 class DangerConfirmationDialog extends StatefulWidget {
   final String title;
@@ -86,8 +87,9 @@ class _DangerConfirmationDialogState extends State<DangerConfirmationDialog> {
           onPressed: () => Navigator.of(context).pop(false),
           child: const Text('Cancelar'),
         ),
-        FilledButton(
-          onPressed: _canConfirm ? () => Navigator.of(context).pop(true) : null,
+        ActionButton(
+          onPressed:
+              _canConfirm ? () async => Navigator.of(context).pop(true) : null,
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.error,
             foregroundColor: colorScheme.onError,

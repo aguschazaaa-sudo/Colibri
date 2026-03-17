@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:fpdart/fpdart.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:cobrador/domain/failure.dart';
@@ -95,23 +96,44 @@ class FirebaseAuthDataSource {
   /// Sign in with Google.
   Future<Either<Failure, ProviderModel>> signInWithGoogle() async {
     try {
-      final googleSignIn = GoogleSignIn();
-      final googleUser = await googleSignIn.signIn();
+      firebase_auth.User? user;
 
-      if (googleUser == null) {
-        return const Left(Failure.unknown('Google sign-in cancelled'));
+      if (kIsWeb) {
+        // En la web, usamos el proveedor nativo de Firebase Auth que no requiere configurar
+        // explícitamente el Client ID como lo requiere el plugin google_sign_in.
+        final googleProvider = firebase_auth.GoogleAuthProvider();
+        final userCredential = await _firebaseAuth.signInWithPopup(
+          googleProvider,
+        );
+        user = userCredential.user;
+      } else {
+        // En móvil/desktop, usamos el plugin google_sign_in
+        final googleSignIn = GoogleSignIn();
+        final googleUser = await googleSignIn.signIn();
+
+        if (googleUser == null) {
+          return const Left(Failure.unknown('Inicio con Google cancelado'));
+        }
+
+        final googleAuth = await googleUser.authentication;
+        final credential = firebase_auth.GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final userCredential = await _firebaseAuth.signInWithCredential(
+          credential,
+        );
+        user = userCredential.user;
       }
 
-      final googleAuth = await googleUser.authentication;
-      final credential = firebase_auth.GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+      if (user == null) {
+        return const Left(
+          Failure.unknown('No se pudo obtener el usuario de Firebase'),
+        );
+      }
 
-      final userCredential = await _firebaseAuth.signInWithCredential(
-        credential,
-      );
-      final model = await _fetchProviderFromFirestore(userCredential.user!);
+      final model = await _fetchProviderFromFirestore(user);
       return Right(model);
     } on firebase_auth.FirebaseAuthException catch (e) {
       return Left(_mapAuthException(e));
@@ -180,9 +202,10 @@ class FirebaseAuthDataSource {
       case 'email-already-in-use':
         return const Failure.emailAlreadyInUse();
       case 'invalid-credential':
-      case 'user-not-found':
       case 'wrong-password':
         return const Failure.invalidCredentials();
+      case 'user-not-found':
+        return const Failure.notFound('No se encontró cuenta de usuario');
       case 'weak-password':
         return const Failure.weakPassword();
       case 'network-request-failed':

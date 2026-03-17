@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cobrador/domain/vacation_period.dart';
 
 part 'provider.freezed.dart';
 
@@ -18,8 +19,10 @@ abstract class Provider with _$Provider {
     @Default(SubscriptionPlan.none) SubscriptionPlan plan,
     DateTime? subscriptionExpiresAt,
     @Default(0.0) double defaultMonthlyInterestRate,
+    @Default(0.0) double discountPercentage,
     String? whatsappTemplate,
     @Default(<String>[]) List<String> nonWorkingDays,
+    @Default(<VacationPeriod>[]) List<VacationPeriod> vacations,
     required DateTime createdAt,
   }) = _Provider;
 

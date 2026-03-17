@@ -5,14 +5,19 @@ import 'package:cobrador/presentation/auth/register_page.dart';
 import 'package:cobrador/presentation/finances/finances_page.dart';
 import 'package:cobrador/presentation/home/home_page.dart';
 import 'package:cobrador/presentation/landing/landing_page.dart';
+import 'package:cobrador/presentation/landing/terms_page.dart';
+import 'package:cobrador/presentation/landing/privacy_page.dart';
 import 'package:cobrador/presentation/patients/patient_detail_page.dart';
 import 'package:cobrador/presentation/patients/patients_page.dart';
 import 'package:cobrador/providers/auth_providers.dart';
 import 'package:cobrador/presentation/reminders/reminders_page.dart';
 import 'package:cobrador/presentation/settings/settings_page.dart';
 import 'package:cobrador/presentation/settings/non_working_days_page.dart';
+import 'package:cobrador/presentation/settings/notifications_settings_page.dart';
+import 'package:cobrador/presentation/settings/profile_page.dart';
 import 'package:cobrador/presentation/splash/splash_page.dart';
 import 'package:cobrador/presentation/subscription/subscription_page.dart';
+import 'package:cobrador/presentation/widgets/app_shell.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,6 +28,10 @@ import 'package:go_router/go_router.dart';
 /// - `/login`, `/register`, `/forgot-password` : Auth pages (redirect to /home if logged in)
 /// - `/home` : Dashboard (redirect to /login if not logged in)
 /// - `/subscription` : Subscription gateway (redirects to /home if active, blocks core app if inactive)
+///
+/// The 5 main app sections (/home, /patients, /finances, /reminders, /settings)
+/// are wrapped in a [ShellRoute] that renders [AppShell] persistently.
+/// The sidebar inside AppShell NEVER animates during navigation between them.
 
 /// Provider to track if the splash screen has been shown successfully.
 final splashShownProvider = StateProvider<bool>((ref) => false);
@@ -65,8 +74,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             return '/subscription';
           }
         } else {
-          // If has active plan and visits subscription, auth pages, or landing, redirect to home.
-          if (isOnSubscriptionPage || isOnAuthPage || isLandingPage) {
+          // If has active plan and visits auth pages, or landing, redirect to home.
+          if (isOnAuthPage || isLandingPage) {
             return '/home';
           }
         }
@@ -81,6 +90,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
       GoRoute(path: '/', builder: (context, state) => const LandingPage()),
+      GoRoute(path: '/terms', builder: (context, state) => const TermsPage()),
+      GoRoute(
+        path: '/privacy',
+        builder: (context, state) => const PrivacyPage(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
@@ -94,37 +108,59 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/subscription',
         builder: (context, state) => const SubscriptionPage(),
       ),
-      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
-      GoRoute(
-        path: '/patients',
-        builder: (context, state) => const PatientsPage(),
+
+      // ─── Persistent Shell ────────────────────────────────────────────────
+      // All routes inside this ShellRoute share the AppShell (with its sidebar).
+      // The shell is never destroyed or animated when navigating between them.
+      ShellRoute(
+        builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(
-            path: ':id',
-            builder: (context, state) {
-              final id = state.pathParameters['id']!;
-              // The extra object might be null if navigated via URL directly.
-              final patientObj = state.extra as Patient?;
-              return PatientDetailPage(patientId: id, patientObj: patientObj);
-            },
+            path: '/home',
+            builder: (context, state) => const HomePage(),
           ),
-        ],
-      ),
-      GoRoute(
-        path: '/finances',
-        builder: (context, state) => const FinancesPage(),
-      ),
-      GoRoute(
-        path: '/reminders',
-        builder: (context, state) => const RemindersPage(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsPage(),
-        routes: [
           GoRoute(
-            path: 'non-working-days',
-            builder: (context, state) => const NonWorkingDaysPage(),
+            path: '/patients',
+            builder: (context, state) => const PatientsPage(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final patientObj = state.extra as Patient?;
+                  return PatientDetailPage(
+                    patientId: id,
+                    patientObj: patientObj,
+                  );
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/finances',
+            builder: (context, state) => const FinancesPage(),
+          ),
+          GoRoute(
+            path: '/reminders',
+            builder: (context, state) => const RemindersPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsPage(),
+            routes: [
+              GoRoute(
+                path: 'non-working-days',
+                builder: (context, state) => const NonWorkingDaysPage(),
+              ),
+              GoRoute(
+                path: 'profile',
+                builder: (context, state) => const ProfilePage(),
+              ),
+              GoRoute(
+                path: 'notifications',
+                builder: (context, state) => const NotificationsSettingsPage(),
+              ),
+            ],
           ),
         ],
       ),

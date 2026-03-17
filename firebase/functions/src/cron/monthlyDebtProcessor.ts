@@ -125,12 +125,16 @@ export const monthlyDebtProcessor = functions
 async function queueWhatsAppReminder(providerId: string, patientId: string, totalDebt: number, patientName: string) {
     console.log(`[WhatsApp Engine] Enqueuing reminder for Patient ${patientName} (${patientId}). Debt: $${totalDebt}`);
     
-    await db.collection("communications").add({
-        providerId: providerId,
-        patientId: patientId,
-        type: "whatsapp_reminder",
-        status: "pending",
-        totalDebtAtThatTime: totalDebt,
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await db
+        .collection("providers")
+        .doc(providerId)
+        .collection("communications")
+        .add({
+            patientId: patientId,
+            patientName: patientName,
+            type: "whatsapp_reminder",
+            status: "pending",
+            totalDebtAtThatTime: totalDebt,
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
 }

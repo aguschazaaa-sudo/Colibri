@@ -48,6 +48,13 @@ class PaymentsNotifier extends StateNotifier<PaymentsState> {
     );
   }
 
+  /// Optimistically removes a payment from the local list by its ID.
+  void removePayment(String paymentId) {
+    state = state.copyWith(
+      payments: state.payments.where((p) => p.id != paymentId).toList(),
+    );
+  }
+
   Future<void> fetchNextPage() async {
     if (state.isLoadingMore || !state.hasMore) return;
 
@@ -82,10 +89,7 @@ class PaymentsNotifier extends StateNotifier<PaymentsState> {
   }
 }
 
-final paymentsProvider =
-    StateNotifierProvider.family<PaymentsNotifier, PaymentsState, String>((
-      ref,
-      providerId,
-    ) {
+final paymentsProvider = StateNotifierProvider.family
+    .autoDispose<PaymentsNotifier, PaymentsState, String>((ref, providerId) {
       return PaymentsNotifier(ref, providerId);
     });

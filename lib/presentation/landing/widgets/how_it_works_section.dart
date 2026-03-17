@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cobrador/presentation/landing/widgets/scroll_reveal_wrapper.dart';
 
 /// Visual timeline explaining the 3-step flow:
 /// 1. Register patients & appointments
@@ -54,10 +56,15 @@ class HowItWorksSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.xxl),
-              if (isWide)
-                const _DesktopSteps(steps: _steps)
-              else
-                const _MobileSteps(steps: _steps),
+              ScrollRevealWrapper(
+                childBuilder: (context, isVisible) {
+                  if (isWide) {
+                    return _DesktopSteps(steps: _steps, isVisible: isVisible);
+                  } else {
+                    return _MobileSteps(steps: _steps, isVisible: isVisible);
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -69,9 +76,10 @@ class HowItWorksSection extends StatelessWidget {
 // ── Desktop: horizontal with connectors ─────────────────────────────────────
 
 class _DesktopSteps extends StatelessWidget {
-  const _DesktopSteps({required this.steps});
+  const _DesktopSteps({required this.steps, required this.isVisible});
 
   final List<_StepData> steps;
+  final bool isVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -83,13 +91,26 @@ class _DesktopSteps extends StatelessWidget {
         for (int i = 0; i < steps.length; i++) ...[
           if (i > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 28),
-              child: SizedBox(
-                width: 48,
-                child: Divider(color: colorScheme.outline, thickness: 2),
-              ),
-            ),
-          Expanded(child: _StepTile(data: steps[i])),
+                  padding: const EdgeInsets.only(top: 28),
+                  child: SizedBox(
+                    width: 48,
+                    child: Divider(color: colorScheme.outline, thickness: 2),
+                  ),
+                )
+                .animate(target: isVisible ? 1 : 0)
+                .fadeIn(delay: ((i * 300) + 150).ms, duration: 300.ms)
+                .scaleX(alignment: Alignment.centerLeft),
+          Expanded(
+            child: _StepTile(data: steps[i])
+                .animate(target: isVisible ? 1 : 0)
+                .fadeIn(delay: (i * 300).ms, duration: 400.ms)
+                .slideX(
+                  begin: 0.1,
+                  end: 0,
+                  duration: 400.ms,
+                  curve: Curves.easeOut,
+                ),
+          ),
         ],
       ],
     );
@@ -99,9 +120,10 @@ class _DesktopSteps extends StatelessWidget {
 // ── Mobile: vertical ────────────────────────────────────────────────────────
 
 class _MobileSteps extends StatelessWidget {
-  const _MobileSteps({required this.steps});
+  const _MobileSteps({required this.steps, required this.isVisible});
 
   final List<_StepData> steps;
+  final bool isVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +131,15 @@ class _MobileSteps extends StatelessWidget {
       children: [
         for (int i = 0; i < steps.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.lg),
-          _StepTile(data: steps[i]),
+          _StepTile(data: steps[i])
+              .animate(target: isVisible ? 1 : 0)
+              .fadeIn(delay: (i * 150).ms, duration: 400.ms)
+              .slideY(
+                begin: 0.1,
+                end: 0,
+                duration: 400.ms,
+                curve: Curves.easeOut,
+              ),
         ],
       ],
     );

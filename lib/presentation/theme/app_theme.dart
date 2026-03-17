@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// A no-op page transition builder — pages switch instantly.
+class _NoTransitionBuilder extends PageTransitionsBuilder {
+  const _NoTransitionBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      child;
+}
+
 class AppTheme {
   // Define custom colors based on our design system
   static const Color primary = Color(0xFF00695C); // Deep Teal
@@ -64,6 +79,16 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: _lightColorScheme,
       scaffoldBackgroundColor: background,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: _NoTransitionBuilder(),
+          TargetPlatform.iOS: _NoTransitionBuilder(),
+          TargetPlatform.linux: _NoTransitionBuilder(),
+          TargetPlatform.macOS: _NoTransitionBuilder(),
+          TargetPlatform.windows: _NoTransitionBuilder(),
+          TargetPlatform.fuchsia: _NoTransitionBuilder(),
+        },
+      ),
 
       // Typography
       textTheme: baseTextTheme.copyWith(
@@ -139,14 +164,14 @@ class AppTheme {
         centerTitle: true,
       ),
 
-      cardTheme: CardTheme(
+      cardTheme: const CardThemeData(
         color: surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: surfaceContainer),
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          side: BorderSide(color: surfaceContainer),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
 
       filledButtonTheme: FilledButtonThemeData(

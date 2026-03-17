@@ -14,6 +14,7 @@ class Listener<T> extends Mock {
   void call(T? previous, T next);
 }
 
+// ignore: subtype_of_sealed_class
 class AsyncValueFake<T> extends Fake implements AsyncValue<T> {}
 
 void main() {

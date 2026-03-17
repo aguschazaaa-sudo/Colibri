@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cobrador/presentation/landing/widgets/scroll_reveal_wrapper.dart';
 
 /// Three feature cards: automated reminders, debt control, relationship care.
 class FeaturesSection extends StatelessWidget {
@@ -47,10 +49,18 @@ class FeaturesSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            if (isWide)
-              const _DesktopGrid(features: _features)
-            else
-              const _MobileList(features: _features),
+            ScrollRevealWrapper(
+              childBuilder: (context, isVisible) {
+                if (isWide) {
+                  return _DesktopGrid(
+                    features: _features,
+                    isVisible: isVisible,
+                  );
+                } else {
+                  return _MobileList(features: _features, isVisible: isVisible);
+                }
+              },
+            ),
           ],
         ),
       ),
@@ -61,9 +71,10 @@ class FeaturesSection extends StatelessWidget {
 // ── Desktop: 3-column grid ──────────────────────────────────────────────────
 
 class _DesktopGrid extends StatelessWidget {
-  const _DesktopGrid({required this.features});
+  const _DesktopGrid({required this.features, required this.isVisible});
 
   final List<_FeatureData> features;
+  final bool isVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +84,17 @@ class _DesktopGrid extends StatelessWidget {
         children: [
           for (int i = 0; i < features.length; i++) ...[
             if (i > 0) const SizedBox(width: AppSpacing.lg),
-            Expanded(child: _FeatureCard(data: features[i])),
+            Expanded(
+              child: _FeatureCard(data: features[i])
+                  .animate(target: isVisible ? 1 : 0)
+                  .fadeIn(delay: (i * 150).ms, duration: 400.ms)
+                  .slideY(
+                    begin: 0.1,
+                    end: 0,
+                    duration: 400.ms,
+                    curve: Curves.easeOut,
+                  ),
+            ),
           ],
         ],
       ),
@@ -84,9 +105,10 @@ class _DesktopGrid extends StatelessWidget {
 // ── Mobile: stacked cards ───────────────────────────────────────────────────
 
 class _MobileList extends StatelessWidget {
-  const _MobileList({required this.features});
+  const _MobileList({required this.features, required this.isVisible});
 
   final List<_FeatureData> features;
+  final bool isVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +116,15 @@ class _MobileList extends StatelessWidget {
       children: [
         for (int i = 0; i < features.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.md),
-          _FeatureCard(data: features[i]),
+          _FeatureCard(data: features[i])
+              .animate(target: isVisible ? 1 : 0)
+              .fadeIn(delay: (i * 150).ms, duration: 400.ms)
+              .slideY(
+                begin: 0.1,
+                end: 0,
+                duration: 400.ms,
+                curve: Curves.easeOut,
+              ),
         ],
       ],
     );

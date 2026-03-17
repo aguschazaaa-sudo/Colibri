@@ -6,6 +6,9 @@ import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cobrador/presentation/providers/firebase_providers.dart';
+import 'package:cobrador/presentation/providers/patient_provider.dart';
+
 import 'widgets/patient_debt_summary_card.dart';
 import 'widgets/patient_header_card.dart';
 
@@ -21,15 +24,59 @@ class PatientDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (patientObj == null) {
+    if (patientObj != null) {
+      return _PatientDetailScaffold(patient: patientObj!);
+    }
+
+    final auth = ref.watch(firebaseAuthProvider);
+    final providerId = auth.currentUser?.uid;
+
+    if (providerId == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Detalle de Paciente')),
-        body: const Center(child: Text('Paciente no encontrado')),
+        body: const Center(child: Text('Usuario no autenticado')),
       );
     }
 
-    final patient = patientObj!;
+    final patientsAsync = ref.watch(patientsProvider(providerId));
 
+    return patientsAsync.when(
+      data: (patients) {
+        final patient = patients.cast<Patient?>().firstWhere(
+          (p) => p?.id == patientId,
+          orElse: () => null,
+        );
+
+        if (patient == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Detalle de Paciente')),
+            body: const Center(child: Text('Paciente no encontrado')),
+          );
+        }
+
+        return _PatientDetailScaffold(patient: patient);
+      },
+      loading:
+          () => Scaffold(
+            appBar: AppBar(title: const Text('Cargando...')),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+      error:
+          (e, st) => Scaffold(
+            appBar: AppBar(title: const Text('Error')),
+            body: Center(child: Text('Error: $e')),
+          ),
+    );
+  }
+}
+
+class _PatientDetailScaffold extends ConsumerWidget {
+  final Patient patient;
+
+  const _PatientDetailScaffold({required this.patient});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: _PatientDetailAppBar(
         patientName: patient.name,
@@ -53,9 +100,9 @@ class PatientDetailPage extends ConsumerWidget {
               child: PatientDebtSummaryCard(patient: patient),
             ),
             const SizedBox(height: AppSpacing.lg),
-            UnpaidAppointmentsList(patientId: patientId),
+            UnpaidAppointmentsList(patientId: patient.id),
             const SizedBox(height: AppSpacing.lg),
-            RecurringAppointmentsList(patientId: patientId),
+            RecurringAppointmentsList(patientId: patient.id),
             const SizedBox(height: AppSpacing.lg),
           ],
         ),

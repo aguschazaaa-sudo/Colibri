@@ -31,7 +31,7 @@ class SuccessMessage extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Revisá tu bandeja de entrada y seguí las instrucciones para restablecer tu contraseña.',
+            'Revisá tu bandeja de entrada o la carpeta de **Spam** y seguí las instrucciones para restablecer tu contraseña.',
             style: textTheme.bodyMedium?.copyWith(
               color: colorScheme.onTertiaryContainer,
             ),

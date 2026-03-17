@@ -9,6 +9,7 @@ abstract class Payment with _$Payment {
     required String patientId,
     required String providerId,
     String? appointmentId,
+    String? idempotencyKey,
     required double amount,
     required DateTime date,
   }) = _Payment;

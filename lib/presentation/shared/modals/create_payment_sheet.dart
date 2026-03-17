@@ -2,10 +2,12 @@ import 'package:currency_text_input_formatter/currency_text_input_formatter.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
+import 'package:cobrador/presentation/widgets/action_button.dart';
 
 class CreatePaymentSheet extends ConsumerStatefulWidget {
   final String? initialPatientId;
@@ -21,6 +23,7 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
   String? _selectedPatientId;
   double _amount = 0.0;
   bool _isSubmitting = false;
+  late final String _idempotencyKey;
   final CurrencyTextInputFormatter _formatter =
       CurrencyTextInputFormatter.currency(
         locale: 'es_AR',
@@ -32,14 +35,14 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
   void initState() {
     super.initState();
     _selectedPatientId = widget.initialPatientId;
+    _idempotencyKey = const Uuid().v4();
   }
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
-
     if (_formKey.currentState!.validate() && _selectedPatientId != null) {
-      setState(() => _isSubmitting = true);
       _formKey.currentState!.save();
+      setState(() => _isSubmitting = true);
 
       try {
         final auth = ref.read(firebaseAuthProvider);
@@ -52,6 +55,7 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
           providerId: providerId,
           amount: _amount,
           date: DateTime.now(),
+          idempotencyKey: _idempotencyKey,
         );
 
         // Access the Ledger provider logic
@@ -74,13 +78,16 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
         }
       } catch (e) {
         if (mounted) {
-          setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error guardando el pago: $e'),
               backgroundColor: Colors.red,
             ),
           );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
         }
       }
     }
@@ -121,27 +128,36 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
                             style: TextStyle(color: Colors.red),
                           );
                         }
-                        return DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Paciente',
-                            prefixIcon: Icon(Icons.person_outline_rounded),
-                          ),
-                          items:
-                              patients
-                                  .map(
-                                    (p) => DropdownMenuItem(
-                                      value: p.id,
-                                      child: Text(
-                                        '${p.name} (Deuda: \$${p.totalDebt.toStringAsFixed(0)})',
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged:
-                              (v) => setState(() => _selectedPatientId = v),
+                        return FormField<String>(
+                          initialValue: _selectedPatientId,
                           validator:
                               (v) =>
                                   v == null ? 'Seleccione un paciente' : null,
+                          builder: (state) {
+                            return DropdownMenu<String>(
+                              initialSelection: _selectedPatientId,
+                              expandedInsets: EdgeInsets.zero,
+                              label: const Text('Paciente'),
+                              leadingIcon: const Icon(
+                                Icons.person_outline_rounded,
+                              ),
+                              enableFilter: true,
+                              enableSearch: true,
+                              errorText: state.errorText,
+                              dropdownMenuEntries:
+                                  patients.map((p) {
+                                    return DropdownMenuEntry(
+                                      value: p.id,
+                                      label:
+                                          '${p.name} (Deuda: \$${p.totalDebt.toStringAsFixed(0)})',
+                                    );
+                                  }).toList(),
+                              onSelected: (v) {
+                                setState(() => _selectedPatientId = v);
+                                state.didChange(v);
+                              },
+                            );
+                          },
                         );
                       },
                       loading:
@@ -174,16 +190,9 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
                   (v) => _amount = _formatter.getUnformattedValue().toDouble(),
             ),
             const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child:
-                  _isSubmitting
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Text('Registrar Pago'),
+            ActionButton(
+              onPressed: _submit,
+              child: const Text('Registrar Pago'),
             ),
           ],
         ),

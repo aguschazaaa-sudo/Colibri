@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cobrador/domain/provider.dart';
+import 'package:cobrador/domain/vacation_period.dart';
 
 /// Data model for mapping Firebase User to domain Provider entity.
 ///
@@ -13,7 +14,9 @@ class ProviderModel {
   final SubscriptionPlan plan;
   final DateTime? subscriptionExpiresAt;
   final double defaultMonthlyInterestRate;
+  final double discountPercentage;
   final List<String> nonWorkingDays;
+  final List<VacationPeriod> vacations;
   final DateTime createdAt;
 
   const ProviderModel({
@@ -24,7 +27,9 @@ class ProviderModel {
     required this.plan,
     this.subscriptionExpiresAt,
     required this.defaultMonthlyInterestRate,
+    this.discountPercentage = 0.0,
     this.nonWorkingDays = const [],
+    this.vacations = const [],
     required this.createdAt,
   });
 
@@ -44,6 +49,7 @@ class ProviderModel {
       plan: SubscriptionPlan.basic,
       subscriptionExpiresAt: DateTime.now().add(const Duration(days: 5)),
       defaultMonthlyInterestRate: 0.0,
+      discountPercentage: 0.0,
       nonWorkingDays: const [
         '01-01',
         '03-24',
@@ -55,6 +61,7 @@ class ProviderModel {
         '12-08',
         '12-25',
       ],
+      vacations: const [],
       createdAt: DateTime.now(),
     );
   }
@@ -70,7 +77,17 @@ class ProviderModel {
       if (subscriptionExpiresAt != null)
         'subscriptionExpiresAt': Timestamp.fromDate(subscriptionExpiresAt!),
       'defaultMonthlyInterestRate': defaultMonthlyInterestRate,
+      'discountPercentage': discountPercentage,
       'nonWorkingDays': nonWorkingDays,
+      'vacations':
+          vacations
+              .map(
+                (v) => {
+                  'startDate': Timestamp.fromDate(v.startDate),
+                  'endDate': Timestamp.fromDate(v.endDate),
+                },
+              )
+              .toList(),
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -95,9 +112,21 @@ class ProviderModel {
               : null,
       defaultMonthlyInterestRate:
           (json['defaultMonthlyInterestRate'] as num?)?.toDouble() ?? 0.0,
+      discountPercentage:
+          (json['discountPercentage'] as num?)?.toDouble() ?? 0.0,
       nonWorkingDays:
           (json['nonWorkingDays'] as List<dynamic>?)
               ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      vacations:
+          (json['vacations'] as List<dynamic>?)
+              ?.map(
+                (e) => VacationPeriod(
+                  startDate: (e['startDate'] as Timestamp).toDate(),
+                  endDate: (e['endDate'] as Timestamp).toDate(),
+                ),
+              )
               .toList() ??
           const [],
       createdAt:
@@ -117,7 +146,9 @@ class ProviderModel {
       plan: plan,
       subscriptionExpiresAt: subscriptionExpiresAt,
       defaultMonthlyInterestRate: defaultMonthlyInterestRate,
+      discountPercentage: discountPercentage,
       nonWorkingDays: nonWorkingDays,
+      vacations: vacations,
       createdAt: createdAt,
     );
   }

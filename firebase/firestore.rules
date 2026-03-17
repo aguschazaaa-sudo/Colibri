@@ -23,6 +23,11 @@ service cloud.firestore {
         allow read: if isOwner(providerId);
       }
       
+      // Subcolección de Comunicaciones/Logs (WhatsApp etc)
+      match /communications/{commId} {
+        allow read, write: if isOwner(providerId);
+      }
+      
       // Subcolección de Pacientes — el path ya garantiza el aislamiento por provider.
       match /patients/{patientId} {
         allow read, update, delete: if isOwner(providerId);
@@ -61,11 +66,6 @@ service cloud.firestore {
     match /{path=**}/recurring_appointments/{recurringAppointmentId} {
       allow read: if isOwner(resource.data.providerId);
     }
-    
-    // Colección de Comunicaciones/Logs (WhatsApp etc)
-    match /communications/{commId} {
-      allow read, update, delete: if isOwner(resource.data.providerId);
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.providerId;
-    }
   }
 }
+

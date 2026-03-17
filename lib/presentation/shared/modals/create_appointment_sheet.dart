@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cobrador/presentation/widgets/action_button.dart';
 
 class CreateAppointmentSheet extends ConsumerStatefulWidget {
   final String? initialPatientId;
@@ -24,7 +25,6 @@ class _CreateAppointmentSheetState
   String? _selectedPatientId;
   String _concept = '';
   double _amount = 0.0;
-  bool _isSubmitting = false;
   DateTime _selectedDate = DateTime.now();
   final CurrencyTextInputFormatter _formatter =
       CurrencyTextInputFormatter.currency(
@@ -40,24 +40,44 @@ class _CreateAppointmentSheetState
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+    if (pickedDate != null) {
+      if (!mounted) return;
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_selectedDate),
+      );
+      if (pickedTime != null) {
+        setState(() {
+          _selectedDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      } else {
+        setState(() {
+          _selectedDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            _selectedDate.hour,
+            _selectedDate.minute,
+          );
+        });
+      }
     }
   }
 
   Future<void> _submit() async {
-    if (_isSubmitting) return;
-
     if (_formKey.currentState!.validate()) {
-      setState(() => _isSubmitting = true);
       _formKey.currentState!.save();
 
       try {
@@ -98,7 +118,6 @@ class _CreateAppointmentSheetState
         }
       } catch (e) {
         if (mounted) {
-          setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
@@ -141,22 +160,32 @@ class _CreateAppointmentSheetState
                     if (patients.isEmpty) {
                       return const Text('Agregue un paciente primero');
                     }
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Paciente',
-                        prefixIcon: Icon(Icons.person_outline_rounded),
-                      ),
-                      value: _selectedPatientId,
-                      items:
-                          patients.map((p) {
-                            return DropdownMenuItem(
-                              value: p.id,
-                              child: Text(p.name),
-                            );
-                          }).toList(),
-                      onChanged: (v) => setState(() => _selectedPatientId = v),
+                    return FormField<String>(
+                      initialValue: _selectedPatientId,
                       validator:
                           (v) => v == null ? 'Seleccione un paciente' : null,
+                      builder: (state) {
+                        return DropdownMenu<String>(
+                          initialSelection: _selectedPatientId,
+                          expandedInsets: EdgeInsets.zero,
+                          label: const Text('Paciente'),
+                          leadingIcon: const Icon(Icons.person_outline_rounded),
+                          enableFilter: true,
+                          enableSearch: true,
+                          errorText: state.errorText,
+                          dropdownMenuEntries:
+                              patients.map((p) {
+                                return DropdownMenuEntry(
+                                  value: p.id,
+                                  label: p.name,
+                                );
+                              }).toList(),
+                          onSelected: (v) {
+                            setState(() => _selectedPatientId = v);
+                            state.didChange(v);
+                          },
+                        );
+                      },
                     );
                   },
                   loading: () => const CircularProgressIndicator(),
@@ -170,10 +199,12 @@ class _CreateAppointmentSheetState
               borderRadius: BorderRadius.circular(4),
               child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Fecha del Turno',
+                  labelText: 'Fecha y Hora del Turno',
                   prefixIcon: Icon(Icons.calendar_today_rounded),
                 ),
-                child: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
+                child: Text(
+                  DateFormat('dd/MM/yyyy HH:mm').format(_selectedDate),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -209,16 +240,9 @@ class _CreateAppointmentSheetState
                   (v) => _amount = _formatter.getUnformattedValue().toDouble(),
             ),
             const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child:
-                  _isSubmitting
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Text('Agendar y Generar Deuda'),
+            ActionButton(
+              onPressed: _submit,
+              child: const Text('Agendar y Generar Deuda'),
             ),
           ],
         ),

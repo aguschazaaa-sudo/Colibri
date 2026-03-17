@@ -1,27 +1,58 @@
+import 'package:cobrador/domain/communication_log.dart';
 import 'package:cobrador/presentation/providers/repository_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'reminders_provider.g.dart';
 
-/// Notifier for the Reminders page.
-///
-/// State: `AsyncValue<int?>` — null = idle, int = queued count from last send.
+// ---------------------------------------------------------------------------
+// Stream: last 30 communication logs for the given provider
+// ---------------------------------------------------------------------------
+
 @riverpod
-class RemindersController extends _$RemindersController {
-  @override
-  AsyncValue<int?> build() => const AsyncData(null);
+Stream<List<CommunicationLog>> communicationLogs(
+  Ref ref,
+  String providerId,
+) {
+  final repo = ref.watch(communicationLogRepositoryProvider);
+  return repo.watchCommunicationLogs(providerId);
+}
 
-  /// Calls the `triggerManualReminders` Cloud Function to bulk-queue
-  /// WhatsApp reminders for all patients of the current provider with debt.
-  Future<void> triggerBulkSend() async {
-    state = const AsyncLoading();
+// ---------------------------------------------------------------------------
+// Stats derived from the stream
+// ---------------------------------------------------------------------------
 
-    final repo = ref.read(communicationLogRepositoryProvider);
-    final result = await repo.triggerBulkReminders();
+/// Immutable view-model for the stats cards shown on the Reminders page.
+class RemindersStats {
+  final int totalThisMonth;
+  final DateTime nextSendDate;
 
-    result.fold(
-      (failure) => state = AsyncError(failure, StackTrace.current),
-      (queued) => state = AsyncData(queued),
-    );
+  const RemindersStats({
+    required this.totalThisMonth,
+    required this.nextSendDate,
+  });
+}
+
+@riverpod
+RemindersStats remindersStats(Ref ref, String providerId) {
+  final logs =
+      ref.watch(communicationLogsProvider(providerId)).valueOrNull ?? [];
+  final now = DateTime.now();
+
+  final totalThisMonth =
+      logs
+          .where(
+            (l) => l.sentAt.year == now.year && l.sentAt.month == now.month,
+          )
+          .length;
+
+  // Next 28th: if today is already on or past 28, roll to next month
+  final DateTime nextSend;
+  if (now.day < 28) {
+    nextSend = DateTime(now.year, now.month, 28);
+  } else {
+    nextSend = DateTime(now.year, now.month + 1, 28);
   }
+
+  return RemindersStats(totalThisMonth: totalThisMonth, nextSendDate: nextSend);
 }

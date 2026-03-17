@@ -57,9 +57,7 @@ export const dailyRecurringProcessor = functions
     let skippedHolidaysCount = 0;
 
     // Cache to avoid reading provider documents multiple times.
-    const providerDaysCache = new Map<string, string[]>();
-
-    const targetMMDD = targetDateKey.substring(5); // Extract MM-DD from YYYY-MM-DD
+    const providerDaysCache = new Map<string, { nonWorkingDays: string[], vacations: any[] }>();
 
     for (const recurringDoc of snapshot.docs) {
       try {
@@ -96,16 +94,64 @@ export const dailyRecurringProcessor = functions
           continue;
         }
 
-        // ── Step 2.5: Check if targetDate is a Non-Working Day ───────────
+        // Preserve the original time from the baseDate
+        const finalDate = new Date(targetDate);
+        finalDate.setHours(
+          baseDate.getHours(),
+          baseDate.getMinutes(),
+          baseDate.getSeconds(),
+          baseDate.getMilliseconds()
+        );
+
+        // ── Step 2.5: Check if targetDate is a Non-Working Day or Vacation ───────────
         if (!providerDaysCache.has(providerId)) {
           const providerSnap = await db.collection("providers").doc(providerId).get();
           const pData = providerSnap.data();
-          providerDaysCache.set(providerId, pData?.nonWorkingDays ?? []);
+          providerDaysCache.set(providerId, {
+            nonWorkingDays: pData?.nonWorkingDays ?? [],
+            vacations: pData?.vacations ?? [],
+          });
         }
         
-        const nonWorkingDays = providerDaysCache.get(providerId)!;
-        if (nonWorkingDays.includes(targetMMDD)) {
-          console.log(`[dailyRecurringProcessor] Skipping recurring ${recurringDoc.id} because ${targetMMDD} is a non-working day.`);
+        const providerData = providerDaysCache.get(providerId)!;
+        const nonWorkingDays = providerData.nonWorkingDays;
+        const vacations = providerData.vacations;
+
+        // To check holidays correctly, we must align the date to Buenos Aires time (UTC-3).
+        const baDateCheck = new Date(finalDate.getTime() - (3 * 60 * 60 * 1000));
+        const targetMMDD_BA = `${String(baDateCheck.getUTCMonth() + 1).padStart(2, "0")}-${String(baDateCheck.getUTCDate()).padStart(2, "0")}`;
+
+        let isSkipped = false;
+        let skipReason = "";
+
+        if (nonWorkingDays.includes(targetMMDD_BA)) {
+          isSkipped = true;
+          skipReason = `holiday ${targetMMDD_BA}`;
+        } else {
+          // Check vacations
+          for (const v of vacations) {
+            const start = v.startDate?.toDate?.() ?? new Date(v.startDate);
+            const end = v.endDate?.toDate?.() ?? new Date(v.endDate);
+            
+            const startBA = new Date(start.getTime() - (3 * 60 * 60 * 1000));
+            const endBA = new Date(end.getTime() - (3 * 60 * 60 * 1000));
+            
+            startBA.setUTCHours(0, 0, 0, 0);
+            endBA.setUTCHours(23, 59, 59, 999);
+            
+            const baDateCheckMidnight = new Date(baDateCheck);
+            baDateCheckMidnight.setUTCHours(0,0,0,0);
+            
+            if (baDateCheckMidnight >= startBA && baDateCheckMidnight <= endBA) {
+              isSkipped = true;
+              skipReason = `vacation period`;
+              break;
+            }
+          }
+        }
+
+        if (isSkipped) {
+          console.log(`[dailyRecurringProcessor] Skipping recurring ${recurringDoc.id} because of ${skipReason}.`);
           skippedHolidaysCount++;
           
           // CRITICAL: We still need to update lastGeneratedDate to jump over it 
@@ -141,7 +187,7 @@ export const dailyRecurringProcessor = functions
           providerId,
           recurringAppointmentId: recurringDoc.id,
           concept,
-          date: admin.firestore.Timestamp.fromDate(targetDate),
+          date: admin.firestore.Timestamp.fromDate(finalDate),
           dateKey: targetDateKey,
           totalAmount: defaultAmount,
           amountPaid: 0,

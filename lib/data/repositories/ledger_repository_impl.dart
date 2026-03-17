@@ -260,7 +260,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
   Future<Either<Failure, Payment>> registerPayment(Payment payment) async {
     try {
       final callable = _functions.httpsCallable('payments-registerPayment');
-      final idempotencyKey = const Uuid().v4();
+      final idempotencyKey = payment.idempotencyKey ?? const Uuid().v4();
 
       final result = await callable.call(<String, dynamic>{
         'patientId': payment.patientId,

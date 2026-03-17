@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:cobrador/domain/appointment.dart';
@@ -10,17 +11,25 @@ import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
 import 'package:cobrador/presentation/providers/firebase_providers.dart';
 import 'package:cobrador/presentation/providers/patient_provider.dart';
+import 'package:cobrador/presentation/widgets/action_button.dart';
 
-class TodayAppointmentsSection extends ConsumerWidget {
+class TodayAppointmentsSection extends ConsumerStatefulWidget {
   const TodayAppointmentsSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayAppointmentsSection> createState() =>
+      _TodayAppointmentsSectionState();
+}
+
+class _TodayAppointmentsSectionState
+    extends ConsumerState<TodayAppointmentsSection> {
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // We'll watch all appointments. Since we don't have a specific 'today' provider yet,
-    // we fetch them and filter them client side, or rely on a future specific provider.
     final auth = ref.watch(firebaseAuthProvider);
     final providerId = auth.currentUser?.uid ?? '';
 
@@ -28,34 +37,73 @@ class TodayAppointmentsSection extends ConsumerWidget {
       ledgerProvider(providerId: providerId, patientId: ''),
     );
 
-    return appointmentsAsync.when(
-      data: (appointments) {
-        // Here we would ideally filter by today. For the UI mockup we just show all unpaid
-        final todayAppointments =
-            appointments
-                .where((a) => a.status == AppointmentStatus.unpaid)
-                .toList();
+    final now = DateTime.now();
+    final isToday =
+        _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+    final dateString =
+        isToday ? 'Hoy' : DateFormat('E d MMM', 'es').format(_selectedDate);
 
-        if (todayAppointments.isEmpty) {
-          return _EmptyState(textTheme: textTheme, colorScheme: colorScheme);
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: AppSpacing.edgeInsetsH,
-              child: Text(
-                'Turnos pendientes',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: AppSpacing.edgeInsetsH,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    _selectedDate = _selectedDate.subtract(
+                      const Duration(days: 1),
+                    );
+                  });
+                },
+              ),
+              Text(
+                dateString.toUpperCase(),
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            SizedBox(
-              height: 140, // Height for the horizontal list
-              child: ScrollConfiguration(
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () {
+                  setState(() {
+                    _selectedDate = _selectedDate.add(const Duration(days: 1));
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          height: 140, // Height for the horizontal list
+          child: appointmentsAsync.when(
+            data: (appointments) {
+              final dailyAppointments =
+                  appointments
+                      .where(
+                        (a) =>
+                            a.date.year == _selectedDate.year &&
+                            a.date.month == _selectedDate.month &&
+                            a.date.day == _selectedDate.day,
+                      )
+                      .toList()
+                    ..sort((a, b) => a.date.compareTo(b.date));
+
+              if (dailyAppointments.isEmpty) {
+                return _EmptyState(
+                  textTheme: textTheme,
+                  colorScheme: colorScheme,
+                );
+              }
+
+              return ScrollConfiguration(
                 behavior: ScrollConfiguration.of(context).copyWith(
                   dragDevices: {
                     PointerDeviceKind.touch,
@@ -65,11 +113,11 @@ class TodayAppointmentsSection extends ConsumerWidget {
                 child: ListView.separated(
                   padding: AppSpacing.edgeInsetsH,
                   scrollDirection: Axis.horizontal,
-                  itemCount: todayAppointments.length,
+                  itemCount: dailyAppointments.length,
                   separatorBuilder:
                       (_, __) => const SizedBox(width: AppSpacing.md),
                   itemBuilder: (context, index) {
-                    final apt = todayAppointments[index];
+                    final apt = dailyAppointments[index];
                     return _AppointmentCard(appointment: apt)
                         .animate(delay: (100 * index).ms)
                         .fadeIn(duration: 400.ms, curve: Curves.easeOut)
@@ -81,29 +129,11 @@ class TodayAppointmentsSection extends ConsumerWidget {
                         );
                   },
                 ),
-              ),
-            ),
-          ],
-        );
-      },
-      loading:
-          () => Skeletonizer(
-            enabled: true,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: AppSpacing.edgeInsetsH,
-                  child: Text(
-                    'Turnos pendientes',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  height: 140,
+              );
+            },
+            loading:
+                () => Skeletonizer(
+                  enabled: true,
                   child: ScrollConfiguration(
                     behavior: ScrollConfiguration.of(context).copyWith(
                       dragDevices: {
@@ -134,28 +164,31 @@ class TodayAppointmentsSection extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-      error:
-          (err, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: colorScheme.error),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Error cargando turnos',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.error,
+            error:
+                (err, stack) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: colorScheme.error,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Error cargando turnos',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.error,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
           ),
+        ),
+      ],
     );
   }
 }
@@ -172,6 +205,7 @@ class _EmptyState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.calendar_today_outlined,
@@ -179,10 +213,7 @@ class _EmptyState extends StatelessWidget {
               color: colorScheme.outline,
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              'No hay turnos agendados para hoy',
-              style: textTheme.bodyMedium,
-            ),
+            Text('No hay turnos para esta fecha', style: textTheme.bodyMedium),
           ],
         ),
       ),
@@ -190,15 +221,23 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _AppointmentCard extends ConsumerWidget {
+class _AppointmentCard extends ConsumerStatefulWidget {
   final Appointment appointment; // Now receiving the whole domain entity
 
   const _AppointmentCard({required this.appointment});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AppointmentCard> createState() => _AppointmentCardState();
+}
+
+class _AppointmentCardState extends ConsumerState<_AppointmentCard> {
+  bool _isSubmitting = false;
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final appointment = widget.appointment;
 
     final isSkeleton = appointment.providerId.isEmpty;
     final patientsAsync =
@@ -221,9 +260,14 @@ class _AppointmentCard extends ConsumerWidget {
       width: 220,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
+        color:
+            isPaid
+                ? colorScheme.surfaceContainerHighest.withOpacity(0.4)
+                : colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppSpacing.md),
-        border: Border.all(color: colorScheme.outlineVariant),
+        border: Border.all(
+          color: isPaid ? Colors.transparent : colorScheme.outlineVariant,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,7 +279,8 @@ class _AppointmentCard extends ConsumerWidget {
                 time,
                 style: textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+                  color: isPaid ? colorScheme.outline : colorScheme.primary,
+                  decoration: isPaid ? TextDecoration.lineThrough : null,
                 ),
               ),
               if (!isPaid)
@@ -255,14 +300,19 @@ class _AppointmentCard extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             patientName,
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color:
+                  isPaid ? colorScheme.onSurfaceVariant.withOpacity(0.6) : null,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             appointment.concept,
             style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+              color:
+                  isPaid ? colorScheme.outline : colorScheme.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -272,49 +322,64 @@ class _AppointmentCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '\$${appointment.totalAmount - appointment.amountPaid}',
+                isPaid
+                    ? '\$${appointment.totalAmount}'
+                    : '\$${appointment.totalAmount - appointment.amountPaid}',
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  decoration: isPaid ? TextDecoration.lineThrough : null,
+                  color: isPaid ? colorScheme.outline : null,
                 ),
               ),
               if (!isPaid)
-                FilledButton.tonal(
-                  onPressed: () async {
-                    try {
-                      final payment = Payment(
-                        id: '',
-                        patientId: appointment.patientId,
-                        providerId: appointment.providerId,
-                        amount:
-                            appointment.totalAmount -
-                            appointment.amountPaid, // Full pay by default here
-                        date: DateTime.now(),
-                        appointmentId: appointment.id,
-                      );
-                      // Quick action triggers optimistic UI calculation instantly
-                      await ref
-                          .read(
-                            ledgerProvider(
-                              providerId: appointment.providerId,
-                              patientId: appointment.patientId,
-                            ).notifier,
-                          )
-                          .registerPayment(payment);
+                ActionButton.tonal(
+                  onPressed:
+                      _isSubmitting
+                          ? null
+                          : () async {
+                            if (_isSubmitting) return;
+                            setState(() => _isSubmitting = true);
+                            try {
+                              final payment = Payment(
+                                id: '',
+                                patientId: appointment.patientId,
+                                providerId: appointment.providerId,
+                                amount:
+                                    appointment.totalAmount -
+                                    appointment.amountPaid,
+                                date: DateTime.now(),
+                                appointmentId: appointment.id,
+                                idempotencyKey: 'pay_${appointment.id}',
+                              );
+                              await ref
+                                  .read(
+                                    ledgerProvider(
+                                      providerId: appointment.providerId,
+                                      patientId: appointment.patientId,
+                                    ).notifier,
+                                  )
+                                  .registerPayment(payment);
 
-                      if (context.mounted) {
-                        HapticFeedback.lightImpact();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Pago registrado')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                      }
-                    }
-                  },
+                              if (context.mounted) {
+                                HapticFeedback.lightImpact();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Pago registrado'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isSubmitting = false);
+                              }
+                            }
+                          },
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
@@ -322,7 +387,28 @@ class _AppointmentCard extends ConsumerWidget {
                     minimumSize: const Size(0, 32),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Cobrar', style: TextStyle(fontSize: 12)),
+                  child: const Text(
+                    'Cobrar total',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Pagado',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
             ],
           ),

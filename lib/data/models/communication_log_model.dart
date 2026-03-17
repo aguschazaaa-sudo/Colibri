@@ -9,6 +9,7 @@ class CommunicationLogModel {
   final DateTime sentAt;
   final String status;
   final double totalDebtAtThatTime;
+  final String? patientName;
 
   const CommunicationLogModel({
     required this.id,
@@ -18,6 +19,7 @@ class CommunicationLogModel {
     required this.sentAt,
     required this.status,
     required this.totalDebtAtThatTime,
+    this.patientName,
   });
 
   factory CommunicationLogModel.fromEntity(CommunicationLog entity) {
@@ -29,6 +31,7 @@ class CommunicationLogModel {
       sentAt: entity.sentAt,
       status: entity.status,
       totalDebtAtThatTime: entity.totalDebtAtThatTime,
+      patientName: entity.patientName,
     );
   }
 
@@ -37,10 +40,11 @@ class CommunicationLogModel {
       id: id,
       patientId: json['patientId'] as String,
       providerId: json['providerId'] as String,
-      messageId: json['messageId'] as String,
+      messageId: (json['messageId'] as String?) ?? '',
       sentAt: (json['sentAt'] as Timestamp).toDate(),
       status: json['status'] as String,
       totalDebtAtThatTime: (json['totalDebtAtThatTime'] as num).toDouble(),
+      patientName: json['patientName'] as String?,
     );
   }
 
@@ -52,6 +56,7 @@ class CommunicationLogModel {
       'sentAt': Timestamp.fromDate(sentAt),
       'status': status,
       'totalDebtAtThatTime': totalDebtAtThatTime,
+      if (patientName != null) 'patientName': patientName,
     };
   }
 
@@ -64,6 +69,7 @@ class CommunicationLogModel {
       sentAt: sentAt,
       status: status,
       totalDebtAtThatTime: totalDebtAtThatTime,
+      patientName: patientName,
     );
   }
 }

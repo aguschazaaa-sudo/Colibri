@@ -12,5 +12,6 @@ abstract class CommunicationLog with _$CommunicationLog {
     required DateTime sentAt,
     required String status,
     required double totalDebtAtThatTime,
+    String? patientName,
   }) = _CommunicationLog;
 }

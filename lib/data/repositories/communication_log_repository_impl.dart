@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cobrador/data/models/communication_log_model.dart';
 import 'package:cobrador/domain/communication_log.dart';
 import 'package:cobrador/domain/communication_log_repository.dart';
 import 'package:cobrador/domain/failure.dart';
@@ -11,14 +12,52 @@ class CommunicationLogRepositoryImpl implements CommunicationLogRepository {
 
   CommunicationLogRepositoryImpl(this._firestore, this._functions);
 
+  /// Returns a reference to `providers/{providerId}/communications`.
+  CollectionReference<Map<String, dynamic>> _commCollection(
+    String providerId,
+  ) {
+    return _firestore
+        .collection('providers')
+        .doc(providerId)
+        .collection('communications');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stream
+  // ---------------------------------------------------------------------------
+
+  @override
+  Stream<List<CommunicationLog>> watchCommunicationLogs(
+    String providerId,
+  ) {
+    return _commCollection(providerId)
+        .orderBy('sentAt', descending: true)
+        .limit(30)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) =>
+                    CommunicationLogModel.fromJson(doc.data(), doc.id)
+                        .toEntity(),
+              )
+              .toList(),
+        );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Enqueue single reminder
+  // ---------------------------------------------------------------------------
+
   @override
   Future<Either<Failure, CommunicationLog>> enqueueWhatsAppReminder({
     required String providerId,
     required String patientId,
     required double totalDebtAtThatTime,
+    String? patientName,
   }) async {
     try {
-      final docRef = _firestore.collection('communications').doc();
+      final docRef = _commCollection(providerId).doc();
       final now = DateTime.now();
 
       final data = {
@@ -29,6 +68,7 @@ class CommunicationLogRepositoryImpl implements CommunicationLogRepository {
         'totalDebtAtThatTime': totalDebtAtThatTime,
         'messageId': '',
         'sentAt': Timestamp.fromDate(now),
+        if (patientName != null) 'patientName': patientName,
       };
 
       await docRef.set(data);
@@ -41,6 +81,7 @@ class CommunicationLogRepositoryImpl implements CommunicationLogRepository {
         sentAt: now,
         status: 'pending',
         totalDebtAtThatTime: totalDebtAtThatTime,
+        patientName: patientName,
       );
 
       return Right(log);
@@ -50,6 +91,10 @@ class CommunicationLogRepositoryImpl implements CommunicationLogRepository {
       return Left(Failure.serverError(e.toString()));
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Bulk trigger via Cloud Function (kept for backend compatibility)
+  // ---------------------------------------------------------------------------
 
   @override
   Future<Either<Failure, int>> triggerBulkReminders() async {

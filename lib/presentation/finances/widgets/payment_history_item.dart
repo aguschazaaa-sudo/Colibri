@@ -1,6 +1,7 @@
 import 'package:cobrador/domain/payment.dart';
 import 'package:cobrador/presentation/providers/patient_name_provider.dart';
 import 'package:cobrador/presentation/providers/ledger_provider.dart';
+import 'package:cobrador/presentation/providers/payments_provider.dart';
 import 'package:cobrador/presentation/shared/modals/danger_confirmation_dialog.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
@@ -65,8 +66,6 @@ class PaymentHistoryItem extends ConsumerWidget {
 
                   if (confirmed == true && context.mounted) {
                     try {
-                      // Note: We need LedgerProvider which requires providerId and patientId.
-                      // Depending on what is available we could read the repo directly, but we have payment.
                       await ref
                           .read(
                             ledgerProvider(
@@ -75,6 +74,12 @@ class PaymentHistoryItem extends ConsumerWidget {
                             ).notifier,
                           )
                           .deletePayment(payment.id);
+
+                      // Optimistically remove from the finances list UI
+                      ref
+                          .read(paymentsProvider(payment.providerId).notifier)
+                          .removePayment(payment.id);
+
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

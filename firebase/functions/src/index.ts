@@ -20,5 +20,5 @@ export const auth = require("./auth");
 // Export admin module (temporary migrations)
 export const migrations = require("./admin");
 
-
-
+// Export subscriptions module
+export const subscriptions = require("./subscriptions");

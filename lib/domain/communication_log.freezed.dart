@@ -24,6 +24,7 @@ mixin _$CommunicationLog {
   DateTime get sentAt => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
   double get totalDebtAtThatTime => throw _privateConstructorUsedError;
+  String? get patientName => throw _privateConstructorUsedError;
 
   /// Create a copy of CommunicationLog
   /// with the given fields replaced by the non-null parameter values.
@@ -47,6 +48,7 @@ abstract class $CommunicationLogCopyWith<$Res> {
     DateTime sentAt,
     String status,
     double totalDebtAtThatTime,
+    String? patientName,
   });
 }
 
@@ -72,6 +74,7 @@ class _$CommunicationLogCopyWithImpl<$Res, $Val extends CommunicationLog>
     Object? sentAt = null,
     Object? status = null,
     Object? totalDebtAtThatTime = null,
+    Object? patientName = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -110,6 +113,11 @@ class _$CommunicationLogCopyWithImpl<$Res, $Val extends CommunicationLog>
                     ? _value.totalDebtAtThatTime
                     : totalDebtAtThatTime // ignore: cast_nullable_to_non_nullable
                         as double,
+            patientName:
+                freezed == patientName
+                    ? _value.patientName
+                    : patientName // ignore: cast_nullable_to_non_nullable
+                        as String?,
           )
           as $Val,
     );
@@ -133,6 +141,7 @@ abstract class _$$CommunicationLogImplCopyWith<$Res>
     DateTime sentAt,
     String status,
     double totalDebtAtThatTime,
+    String? patientName,
   });
 }
 
@@ -157,6 +166,7 @@ class __$$CommunicationLogImplCopyWithImpl<$Res>
     Object? sentAt = null,
     Object? status = null,
     Object? totalDebtAtThatTime = null,
+    Object? patientName = freezed,
   }) {
     return _then(
       _$CommunicationLogImpl(
@@ -195,6 +205,11 @@ class __$$CommunicationLogImplCopyWithImpl<$Res>
                 ? _value.totalDebtAtThatTime
                 : totalDebtAtThatTime // ignore: cast_nullable_to_non_nullable
                     as double,
+        patientName:
+            freezed == patientName
+                ? _value.patientName
+                : patientName // ignore: cast_nullable_to_non_nullable
+                    as String?,
       ),
     );
   }
@@ -211,6 +226,7 @@ class _$CommunicationLogImpl implements _CommunicationLog {
     required this.sentAt,
     required this.status,
     required this.totalDebtAtThatTime,
+    this.patientName,
   });
 
   @override
@@ -227,10 +243,12 @@ class _$CommunicationLogImpl implements _CommunicationLog {
   final String status;
   @override
   final double totalDebtAtThatTime;
+  @override
+  final String? patientName;
 
   @override
   String toString() {
-    return 'CommunicationLog(id: $id, patientId: $patientId, providerId: $providerId, messageId: $messageId, sentAt: $sentAt, status: $status, totalDebtAtThatTime: $totalDebtAtThatTime)';
+    return 'CommunicationLog(id: $id, patientId: $patientId, providerId: $providerId, messageId: $messageId, sentAt: $sentAt, status: $status, totalDebtAtThatTime: $totalDebtAtThatTime, patientName: $patientName)';
   }
 
   @override
@@ -248,7 +266,9 @@ class _$CommunicationLogImpl implements _CommunicationLog {
             (identical(other.sentAt, sentAt) || other.sentAt == sentAt) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.totalDebtAtThatTime, totalDebtAtThatTime) ||
-                other.totalDebtAtThatTime == totalDebtAtThatTime));
+                other.totalDebtAtThatTime == totalDebtAtThatTime) &&
+            (identical(other.patientName, patientName) ||
+                other.patientName == patientName));
   }
 
   @override
@@ -261,6 +281,7 @@ class _$CommunicationLogImpl implements _CommunicationLog {
     sentAt,
     status,
     totalDebtAtThatTime,
+    patientName,
   );
 
   /// Create a copy of CommunicationLog
@@ -284,6 +305,7 @@ abstract class _CommunicationLog implements CommunicationLog {
     required final DateTime sentAt,
     required final String status,
     required final double totalDebtAtThatTime,
+    final String? patientName,
   }) = _$CommunicationLogImpl;
 
   @override
@@ -300,6 +322,8 @@ abstract class _CommunicationLog implements CommunicationLog {
   String get status;
   @override
   double get totalDebtAtThatTime;
+  @override
+  String? get patientName;
 
   /// Create a copy of CommunicationLog
   /// with the given fields replaced by the non-null parameter values.

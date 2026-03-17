@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cobrador/data/models/dashboard_report_model.dart';
 import 'package:cobrador/data/models/provider_model.dart';
+import 'package:cobrador/data/models/subscription_pricing_model.dart';
 import 'package:cobrador/domain/dashboard_report.dart';
 import 'package:cobrador/domain/failure.dart';
 import 'package:cobrador/domain/provider.dart';
 import 'package:cobrador/domain/provider_repository.dart';
+import 'package:cobrador/domain/subscription_pricing.dart';
+import 'package:cobrador/domain/vacation_period.dart';
 import 'package:fpdart/fpdart.dart';
 
 class ProviderRepositoryImpl implements ProviderRepository {
@@ -117,5 +120,67 @@ class ProviderRepositoryImpl implements ProviderRepository {
     } catch (_) {
       return const Left(Failure.serverError('Failed to remove day.'));
     }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> addVacationPeriod(
+    String providerId,
+    VacationPeriod period,
+  ) async {
+    try {
+      await _firestore.collection('providers').doc(providerId).update({
+        'vacations': FieldValue.arrayUnion([
+          {
+            'startDate': Timestamp.fromDate(period.startDate),
+            'endDate': Timestamp.fromDate(period.endDate),
+          },
+        ]),
+      });
+      return const Right(unit);
+    } on FirebaseException catch (e) {
+      return Left(
+        Failure.serverError(e.message ?? 'Failed to add vacation period.'),
+      );
+    } catch (_) {
+      return const Left(Failure.serverError('Failed to add vacation period.'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> removeVacationPeriod(
+    String providerId,
+    VacationPeriod period,
+  ) async {
+    try {
+      await _firestore.collection('providers').doc(providerId).update({
+        'vacations': FieldValue.arrayRemove([
+          {
+            'startDate': Timestamp.fromDate(period.startDate),
+            'endDate': Timestamp.fromDate(period.endDate),
+          },
+        ]),
+      });
+      return const Right(unit);
+    } on FirebaseException catch (e) {
+      return Left(
+        Failure.serverError(e.message ?? 'Failed to remove vacation period.'),
+      );
+    } catch (_) {
+      return const Left(
+        Failure.serverError('Failed to remove vacation period.'),
+      );
+    }
+  }
+
+  @override
+  Stream<SubscriptionPricing> watchSubscriptionPricing() {
+    return _firestore.collection('metadata').doc('pricing').snapshots().map((
+      snapshot,
+    ) {
+      if (!snapshot.exists || snapshot.data() == null) {
+        return SubscriptionPricing.empty();
+      }
+      return SubscriptionPricingModel.fromFirestore(snapshot).toDomain();
+    });
   }
 }

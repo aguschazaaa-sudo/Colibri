@@ -27,6 +27,15 @@ mixin _$RecurringAppointment {
   bool get active => throw _privateConstructorUsedError;
   DateTime? get endDate => throw _privateConstructorUsedError;
 
+  /// Optional session duration in minutes. When null the Cloud Function falls
+  /// back to the provider's [defaultSessionDurationMinutes], then to 45 min.
+  int? get defaultSessionDurationMinutes => throw _privateConstructorUsedError;
+
+  /// List of dateKey strings (e.g. "2026-04-10") for occurrences that have
+  /// been individually cancelled by the provider. The cron skips these dates
+  /// and the timeline suppresses ghost cards for them.
+  List<String> get cancelledDates => throw _privateConstructorUsedError;
+
   /// Create a copy of RecurringAppointment
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -51,6 +60,8 @@ abstract class $RecurringAppointmentCopyWith<$Res> {
     DateTime baseDate,
     bool active,
     DateTime? endDate,
+    int? defaultSessionDurationMinutes,
+    List<String> cancelledDates,
   });
 }
 
@@ -81,6 +92,8 @@ class _$RecurringAppointmentCopyWithImpl<
     Object? baseDate = null,
     Object? active = null,
     Object? endDate = freezed,
+    Object? defaultSessionDurationMinutes = freezed,
+    Object? cancelledDates = null,
   }) {
     return _then(
       _value.copyWith(
@@ -129,6 +142,16 @@ class _$RecurringAppointmentCopyWithImpl<
                     ? _value.endDate
                     : endDate // ignore: cast_nullable_to_non_nullable
                         as DateTime?,
+            defaultSessionDurationMinutes:
+                freezed == defaultSessionDurationMinutes
+                    ? _value.defaultSessionDurationMinutes
+                    : defaultSessionDurationMinutes // ignore: cast_nullable_to_non_nullable
+                        as int?,
+            cancelledDates:
+                null == cancelledDates
+                    ? _value.cancelledDates
+                    : cancelledDates // ignore: cast_nullable_to_non_nullable
+                        as List<String>,
           )
           as $Val,
     );
@@ -154,6 +177,8 @@ abstract class _$$RecurringAppointmentImplCopyWith<$Res>
     DateTime baseDate,
     bool active,
     DateTime? endDate,
+    int? defaultSessionDurationMinutes,
+    List<String> cancelledDates,
   });
 }
 
@@ -180,6 +205,8 @@ class __$$RecurringAppointmentImplCopyWithImpl<$Res>
     Object? baseDate = null,
     Object? active = null,
     Object? endDate = freezed,
+    Object? defaultSessionDurationMinutes = freezed,
+    Object? cancelledDates = null,
   }) {
     return _then(
       _$RecurringAppointmentImpl(
@@ -228,6 +255,16 @@ class __$$RecurringAppointmentImplCopyWithImpl<$Res>
                 ? _value.endDate
                 : endDate // ignore: cast_nullable_to_non_nullable
                     as DateTime?,
+        defaultSessionDurationMinutes:
+            freezed == defaultSessionDurationMinutes
+                ? _value.defaultSessionDurationMinutes
+                : defaultSessionDurationMinutes // ignore: cast_nullable_to_non_nullable
+                    as int?,
+        cancelledDates:
+            null == cancelledDates
+                ? _value._cancelledDates
+                : cancelledDates // ignore: cast_nullable_to_non_nullable
+                    as List<String>,
       ),
     );
   }
@@ -246,7 +283,9 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
     required this.baseDate,
     this.active = true,
     this.endDate,
-  });
+    this.defaultSessionDurationMinutes,
+    final List<String> cancelledDates = const [],
+  }) : _cancelledDates = cancelledDates;
 
   @override
   final String id;
@@ -268,9 +307,30 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
   @override
   final DateTime? endDate;
 
+  /// Optional session duration in minutes. When null the Cloud Function falls
+  /// back to the provider's [defaultSessionDurationMinutes], then to 45 min.
+  @override
+  final int? defaultSessionDurationMinutes;
+
+  /// List of dateKey strings (e.g. "2026-04-10") for occurrences that have
+  /// been individually cancelled by the provider. The cron skips these dates
+  /// and the timeline suppresses ghost cards for them.
+  final List<String> _cancelledDates;
+
+  /// List of dateKey strings (e.g. "2026-04-10") for occurrences that have
+  /// been individually cancelled by the provider. The cron skips these dates
+  /// and the timeline suppresses ghost cards for them.
+  @override
+  @JsonKey()
+  List<String> get cancelledDates {
+    if (_cancelledDates is EqualUnmodifiableListView) return _cancelledDates;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_cancelledDates);
+  }
+
   @override
   String toString() {
-    return 'RecurringAppointment(id: $id, patientId: $patientId, providerId: $providerId, concept: $concept, defaultAmount: $defaultAmount, frequency: $frequency, baseDate: $baseDate, active: $active, endDate: $endDate)';
+    return 'RecurringAppointment(id: $id, patientId: $patientId, providerId: $providerId, concept: $concept, defaultAmount: $defaultAmount, frequency: $frequency, baseDate: $baseDate, active: $active, endDate: $endDate, defaultSessionDurationMinutes: $defaultSessionDurationMinutes, cancelledDates: $cancelledDates)';
   }
 
   @override
@@ -291,7 +351,17 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
             (identical(other.baseDate, baseDate) ||
                 other.baseDate == baseDate) &&
             (identical(other.active, active) || other.active == active) &&
-            (identical(other.endDate, endDate) || other.endDate == endDate));
+            (identical(other.endDate, endDate) || other.endDate == endDate) &&
+            (identical(
+                  other.defaultSessionDurationMinutes,
+                  defaultSessionDurationMinutes,
+                ) ||
+                other.defaultSessionDurationMinutes ==
+                    defaultSessionDurationMinutes) &&
+            const DeepCollectionEquality().equals(
+              other._cancelledDates,
+              _cancelledDates,
+            ));
   }
 
   @override
@@ -306,6 +376,8 @@ class _$RecurringAppointmentImpl implements _RecurringAppointment {
     baseDate,
     active,
     endDate,
+    defaultSessionDurationMinutes,
+    const DeepCollectionEquality().hash(_cancelledDates),
   );
 
   /// Create a copy of RecurringAppointment
@@ -332,6 +404,8 @@ abstract class _RecurringAppointment implements RecurringAppointment {
     required final DateTime baseDate,
     final bool active,
     final DateTime? endDate,
+    final int? defaultSessionDurationMinutes,
+    final List<String> cancelledDates,
   }) = _$RecurringAppointmentImpl;
 
   @override
@@ -352,6 +426,17 @@ abstract class _RecurringAppointment implements RecurringAppointment {
   bool get active;
   @override
   DateTime? get endDate;
+
+  /// Optional session duration in minutes. When null the Cloud Function falls
+  /// back to the provider's [defaultSessionDurationMinutes], then to 45 min.
+  @override
+  int? get defaultSessionDurationMinutes;
+
+  /// List of dateKey strings (e.g. "2026-04-10") for occurrences that have
+  /// been individually cancelled by the provider. The cron skips these dates
+  /// and the timeline suppresses ghost cards for them.
+  @override
+  List<String> get cancelledDates;
 
   /// Create a copy of RecurringAppointment
   /// with the given fields replaced by the non-null parameter values.

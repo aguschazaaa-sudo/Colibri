@@ -31,10 +31,21 @@ abstract class LedgerRepository {
     Appointment appointment,
   );
 
+  // Actualiza un turno existente
+  Future<Either<Failure, void>> updateAppointment(
+    Appointment appointment,
+  );
+
   // Crea un turno recurrente
   Future<Either<Failure, RecurringAppointment>> createRecurringAppointment(
     RecurringAppointment recurringAppointment,
   );
+
+  // Actualiza un turno recurrente
+  Future<Either<Failure, void>> updateRecurringAppointment(
+    RecurringAppointment recurringAppointment, {
+    bool resetSchedule = false,
+  });
 
   // Elimina un turno
   Future<Either<Failure, void>> deleteAppointment(
@@ -59,4 +70,24 @@ abstract class LedgerRepository {
     String patientId,
     String paymentId,
   );
+
+  /// Obtiene todos los turnos de un profesional en un día dado (todos sus pacientes).
+  /// Excluye turnos cancelados. Usado para detección de solapamientos.
+  Future<List<Appointment>> getAppointmentsForDay({
+    required String providerId,
+    required DateTime day,
+  });
+
+  /// Cancela una ocurrencia individual de un turno recurrente.
+  ///
+  /// Agrega [dateKey] (formato "yyyy-MM-dd") al array [cancelledDates] del
+  /// documento recurrente. Si [existingAppointmentId] no es null, elimina
+  /// también el turno ya generado en el mismo batch.
+  Future<Either<Failure, void>> cancelOccurrence({
+    required String providerId,
+    required String patientId,
+    required String recurringAppointmentId,
+    required String dateKey,
+    String? existingAppointmentId,
+  });
 }

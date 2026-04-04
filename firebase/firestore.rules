@@ -13,6 +13,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == providerId;
     }
 
+    // Colección de Metadatos globales — lectura solo para usuarios autenticados
+    match /metadata/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
     // Colección de Profesionales (Providers)
     // El providerId del path ES el UID del usuario autenticado.
     match /providers/{providerId} {
@@ -21,6 +27,11 @@ service cloud.firestore {
       // Subcolección de Métricas
       match /metrics/{metricId} {
         allow read: if isOwner(providerId);
+
+        // Historial mensual de ingresos (snapshots pre-reset)
+        match /monthly_snapshots/{snapshotId} {
+          allow read: if isOwner(providerId);
+        }
       }
       
       // Subcolección de Comunicaciones/Logs (WhatsApp etc)
@@ -47,24 +58,59 @@ service cloud.firestore {
         
         // Subcolección de Turnos Recurrentes (Recurring Appointments)
         match /recurring_appointments/{recurringAppointmentId} {
-          allow read, update, delete: if isOwner(providerId);
-          allow create: if isOwner(providerId);
+          allow read, delete: if isOwner(providerId);
+          allow create, update: if isOwner(providerId)
+            && (!("defaultSessionDurationMinutes" in request.resource.data)
+                || (request.resource.data.defaultSessionDurationMinutes is int
+                    && request.resource.data.defaultSessionDurationMinutes > 0
+                    && request.resource.data.defaultSessionDurationMinutes <= 480))
+            && (!("cancelledDates" in request.resource.data)
+                || request.resource.data.cancelledDates is list);
+        }
+
+        // Subcolección de Comunicaciones del paciente (mirror de sendWhatsAppReminder)
+        // Solo el Admin SDK escribe; el provider puede leer su propio historial.
+        match /communications/{commId} {
+          allow read: if isOwner(providerId);
+          allow write: if false;
         }
       }
     }
     
+    // Cola de mensajes — acceso solo desde Admin SDK
+    match /message_queue/{queueId} {
+      allow read, write: if false;
+    }
+
+    // Contadores de mensajería — acceso solo desde Admin SDK
+    match /metadata/messaging_counters/{counterId} {
+      allow read, write: if false;
+    }
+
+    // Colección interna de idempotencia para webhooks — acceso solo desde Admin SDK
+    match /webhook_events/{eventId} {
+      allow read, write: if false;
+    }
+
     // Reglas para CollectionGroup Queries
     // Necesarias para buscar subcolecciones sin conocer el path completo.
     match /{path=**}/appointments/{appointmentId} {
       allow read: if isOwner(resource.data.providerId);
     }
-    
+
     match /{path=**}/payments/{paymentId} {
       allow read: if isOwner(resource.data.providerId);
     }
-    
+
     match /{path=**}/recurring_appointments/{recurringAppointmentId} {
       allow read: if isOwner(resource.data.providerId);
+    }
+
+    // Reportes de error — cualquiera puede crear, nadie puede leer/modificar/borrar desde el cliente.
+    // La lectura y el procesamiento son exclusivos del Admin SDK / Cloud Functions.
+    match /error_reports/{reportId} {
+      allow create: if true;
+      allow read, update, delete: if false;
     }
   }
 }

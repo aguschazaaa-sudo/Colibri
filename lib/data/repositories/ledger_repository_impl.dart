@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cobrador/data/models/appointment_model.dart';
@@ -40,7 +41,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
           .where('providerId', isEqualTo: providerId)
           .snapshots()
           .handleError((error) {
-            print('🔥 Error in collectionGroup appointments: $error');
+            debugPrint('🔥 Error in collectionGroup appointments: $error');
           })
           .map((snapshot) {
             return snapshot.docs.map((doc) {
@@ -55,7 +56,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         .where('providerId', isEqualTo: providerId)
         .snapshots()
         .handleError((error) {
-          print('🔥 Error in collection appointments: $error');
+          debugPrint('🔥 Error in collection appointments: $error');
         })
         .map((snapshot) {
           return snapshot.docs.map((doc) {
@@ -90,7 +91,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         query = query.startAfterDocument(cursor);
       }
 
-      print(
+      debugPrint(
         '🔥 [Firestore] Ejecutando query: limit=$limit, hasCursor=${cursor != null}',
       );
       final snapshot = await query.get();
@@ -121,7 +122,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
           .where('providerId', isEqualTo: providerId)
           .snapshots()
           .handleError((error) {
-            print('🔥 Error in collectionGroup recurring_appointments: $error');
+            debugPrint('🔥 Error in collectionGroup recurring_appointments: $error');
           })
           .map((snapshot) {
             return snapshot.docs.map((doc) {
@@ -139,7 +140,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         .where('providerId', isEqualTo: providerId)
         .snapshots()
         .handleError((error) {
-          print('🔥 Error in collection recurring_appointments: $error');
+          debugPrint('🔥 Error in collection recurring_appointments: $error');
         })
         .map((snapshot) {
           return snapshot.docs.map((doc) {
@@ -182,6 +183,33 @@ class LedgerRepositoryImpl implements LedgerRepository {
   }
 
   @override
+  Future<Either<Failure, void>> updateAppointment(
+    Appointment appointment,
+  ) async {
+    try {
+      final docRef = _patientRef(
+        appointment.providerId,
+        appointment.patientId,
+      ).collection('appointments').doc(appointment.id);
+
+      final model = AppointmentModel.fromEntity(appointment);
+
+      await docRef.update(model.toJson());
+
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return const Left(
+          Failure.serverError('No tienes permisos para editar turnos.'),
+        );
+      }
+      return Left(Failure.serverError(e.message ?? 'Unknown Firebase Error'));
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, RecurringAppointment>> createRecurringAppointment(
     RecurringAppointment recurringAppointment,
   ) async {
@@ -203,6 +231,40 @@ class LedgerRepositoryImpl implements LedgerRepository {
         return const Left(
           Failure.serverError(
             'No tienes permisos para crear turnos recurrentes.',
+          ),
+        );
+      }
+      return Left(Failure.serverError(e.message ?? 'Unknown Firebase Error'));
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateRecurringAppointment(
+    RecurringAppointment recurringAppointment, {
+    bool resetSchedule = false,
+  }) async {
+    try {
+      final docRef = _patientRef(
+        recurringAppointment.providerId,
+        recurringAppointment.patientId,
+      ).collection('recurring_appointments').doc(recurringAppointment.id);
+
+      final model = RecurringAppointmentModel.fromEntity(recurringAppointment);
+      final data = model.toJson();
+
+      if (resetSchedule) {
+        data['lastGeneratedDate'] = FieldValue.delete();
+      }
+
+      await docRef.update(data);
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return const Left(
+          Failure.serverError(
+            'No tienes permisos para actualizar turnos recurrentes.',
           ),
         );
       }
@@ -303,6 +365,85 @@ class LedgerRepositoryImpl implements LedgerRepository {
       return Left(Failure.serverError(e.message ?? 'Error deleting payment'));
     } catch (e) {
       return Left(Failure.serverError(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> cancelOccurrence({
+    required String providerId,
+    required String patientId,
+    required String recurringAppointmentId,
+    required String dateKey,
+    String? existingAppointmentId,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+
+      final recurringRef = _patientRef(providerId, patientId)
+          .collection('recurring_appointments')
+          .doc(recurringAppointmentId);
+
+      batch.update(recurringRef, {
+        'cancelledDates': FieldValue.arrayUnion([dateKey]),
+      });
+
+      if (existingAppointmentId != null) {
+        final appointmentRef = _patientRef(providerId, patientId)
+            .collection('appointments')
+            .doc(existingAppointmentId);
+        batch.delete(appointmentRef);
+
+        final paymentsSnapshot = await _patientRef(providerId, patientId)
+            .collection('payments')
+            .where('appointmentId', isEqualTo: existingAppointmentId)
+            .get();
+        for (final doc in paymentsSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+      }
+
+      await batch.commit();
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return const Left(
+          Failure.serverError('No tienes permisos para cancelar esta sesión.'),
+        );
+      }
+      return Left(Failure.serverError(e.message ?? 'Unknown Firebase Error'));
+    } catch (e) {
+      return Left(Failure.serverError(e.toString()));
+    }
+  }
+
+  @override
+  Future<List<Appointment>> getAppointmentsForDay({
+    required String providerId,
+    required DateTime day,
+  }) async {
+    final startOfDay = DateTime(day.year, day.month, day.day, 0, 0, 0);
+    final endOfDay = DateTime(day.year, day.month, day.day, 23, 59, 59, 999);
+
+    try {
+      final snapshot = await _firestore
+          .collectionGroup('appointments')
+          .where('providerId', isEqualTo: providerId)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .get();
+
+      return snapshot.docs
+          .map((doc) => AppointmentModel.fromJson(doc.data(), doc.id).toEntity())
+          .where((a) => a.status != AppointmentStatus.cancelled)
+          .toList();
+    } on FirebaseException catch (e) {
+      // Return empty list on error rather than throwing — callers use this
+      // for overlap detection only, not as a critical data path.
+      debugPrint('🔥 [getAppointmentsForDay] Error: ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('🔥 [getAppointmentsForDay] Unexpected error: $e');
+      return [];
     }
   }
 }

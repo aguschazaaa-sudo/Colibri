@@ -10,8 +10,14 @@ class RecurringAppointmentModel {
   final Frequency frequency;
   final DateTime baseDate;
   final DateTime? endDate;
-
   final bool active;
+
+  /// Optional session duration in minutes. Null means "use provider default".
+  final int? defaultSessionDurationMinutes;
+
+  /// Dates (format "yyyy-MM-dd") for which this recurring appointment has been
+  /// individually cancelled by the provider.
+  final List<String> cancelledDates;
 
   const RecurringAppointmentModel({
     required this.id,
@@ -23,6 +29,8 @@ class RecurringAppointmentModel {
     required this.baseDate,
     required this.active,
     this.endDate,
+    this.defaultSessionDurationMinutes,
+    this.cancelledDates = const [],
   });
 
   factory RecurringAppointmentModel.fromEntity(RecurringAppointment entity) {
@@ -36,6 +44,8 @@ class RecurringAppointmentModel {
       baseDate: entity.baseDate,
       active: entity.active,
       endDate: entity.endDate,
+      defaultSessionDurationMinutes: entity.defaultSessionDurationMinutes,
+      cancelledDates: entity.cancelledDates,
     );
   }
 
@@ -59,6 +69,11 @@ class RecurringAppointmentModel {
           json['endDate'] != null
               ? (json['endDate'] as Timestamp).toDate()
               : null,
+      defaultSessionDurationMinutes:
+          (json['defaultSessionDurationMinutes'] as num?)?.toInt(),
+      cancelledDates: List<String>.from(
+        json['cancelledDates'] as List? ?? [],
+      ),
     );
   }
 
@@ -72,6 +87,9 @@ class RecurringAppointmentModel {
       'baseDate': Timestamp.fromDate(baseDate),
       'active': active,
       if (endDate != null) 'endDate': Timestamp.fromDate(endDate!),
+      if (defaultSessionDurationMinutes != null)
+        'defaultSessionDurationMinutes': defaultSessionDurationMinutes,
+      'cancelledDates': cancelledDates,
     };
   }
 
@@ -86,6 +104,8 @@ class RecurringAppointmentModel {
       baseDate: baseDate,
       active: active,
       endDate: endDate,
+      defaultSessionDurationMinutes: defaultSessionDurationMinutes,
+      cancelledDates: cancelledDates,
     );
   }
 }

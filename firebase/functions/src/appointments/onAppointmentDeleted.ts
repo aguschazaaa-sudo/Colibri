@@ -1,6 +1,5 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { incrementDashboardMetrics } from "../utils/metrics_utils";
 import { distributePaymentFIFO } from "../utils/payment_distribution";
 
 const db = admin.firestore();
@@ -11,12 +10,12 @@ const db = admin.firestore();
  * Fires when an appointment document is hard deleted:
  *   providers/{providerId}/patients/{patientId}/appointments/{appointmentId}
  *
- * Responsibilities:
- *   1. Decreases the patient's `totalDebt` by the pending debt (totalAmount - amountPaid).
- *   2. If the appointment had partial or full payments (`amountPaid > 0`), that money is "freed".
- *      It gets redistributed via FIFO to other unpaid appointments using `distributePaymentFIFO`.
- *      Any leftover money increases the patient's `balance`.
- *   3. Updates the dashboard's `totalToCollect` metrics.
+ * Responsibility: money already paid to this appointment (`amountPaid > 0`) is
+ * "freed" and redistributed via FIFO to other unpaid appointments; any leftover
+ * goes to the patient's `balance`.
+ *
+ * The pending debt of the deleted appointment disappears automatically:
+ * `onAppointmentWritten` recomputes `totalDebt` from the remaining appointments.
  */
 export const onAppointmentDeleted = functions
   .runWith({ maxInstances: 10 })
@@ -26,12 +25,10 @@ export const onAppointmentDeleted = functions
   .onDelete(async (snapshot, context) => {
     const { providerId, patientId, appointmentId } = context.params;
     const appData = snapshot.data();
-
     if (!appData) return;
 
-    const totalAmount: number = appData.totalAmount || 0;
     const amountPaid: number = appData.amountPaid || 0;
-    const pendingDebt = Math.max(0, totalAmount - amountPaid);
+    if (amountPaid <= 0) return;
 
     const patientRef = db
       .collection("providers")
@@ -39,63 +36,41 @@ export const onAppointmentDeleted = functions
       .collection("patients")
       .doc(patientId);
 
-    let netDebtDecrease = 0;
-
     try {
       await db.runTransaction(async (transaction) => {
-        const patientDoc = await transaction.get(patientRef);
+        const unpaidQuery = patientRef
+          .collection("appointments")
+          .where("providerId", "==", providerId)
+          .where("status", "==", "unpaid")
+          .orderBy("date", "asc");
+
+        const [patientDoc, unpaidSnapshot] = await Promise.all([
+          transaction.get(patientRef),
+          transaction.get(unpaidQuery),
+        ]);
 
         if (!patientDoc.exists) {
           console.error(`[onAppointmentDeleted] Patient ${patientId} not found.`);
           return;
         }
 
-        const patientData = patientDoc.data()!;
-        const currentTotalDebt: number = patientData.totalDebt || 0;
-        const currentBalance: number = patientData.balance || 0;
+        const { leftoverBalance } = distributePaymentFIFO(
+          transaction,
+          amountPaid,
+          unpaidSnapshot.docs
+        );
 
-        let newTotalDebt = Math.max(0, currentTotalDebt - pendingDebt);
-        let newBalance = currentBalance;
-        netDebtDecrease += pendingDebt;
-
-        // If money was paid to this appointment, it becomes "freed" and acts like a new payment
-        if (amountPaid > 0) {
-          const appointmentsQuery = patientRef
-            .collection("appointments")
-            .where("providerId", "==", providerId)
-            .where("status", "==", "unpaid")
-            .orderBy("date", "asc");
-
-          const unpaidSnapshot = await transaction.get(appointmentsQuery);
-
-          const { totalDebtDecrease: redistributedDebtDecrease, leftoverBalance } = distributePaymentFIFO(
-            transaction,
-            amountPaid,
-            unpaidSnapshot.docs
-          );
-
-          newTotalDebt = Math.max(0, newTotalDebt - redistributedDebtDecrease);
-          newBalance += leftoverBalance;
-          netDebtDecrease += redistributedDebtDecrease;
+        if (leftoverBalance > 0) {
+          const currentBalance: number = patientDoc.data()!.balance || 0;
+          transaction.update(patientRef, {
+            balance: currentBalance + leftoverBalance,
+          });
         }
 
-        transaction.update(patientRef, {
-          totalDebt: newTotalDebt,
-          balance: newBalance,
-        });
-
         console.log(
-          `[onAppointmentDeleted] Deleted ${appointmentId}. ` +
-          `Debt removed: ${pendingDebt}. Freed money: ${amountPaid}. ` +
-          `totalDebt: ${currentTotalDebt} → ${newTotalDebt}. ` +
-          `balance: ${currentBalance} → ${newBalance}`
+          `[onAppointmentDeleted] Deleted ${appointmentId}. Freed money redistributed.`
         );
       });
-
-      // Update the provider's pre-calculated dashboard metrics outside the transaction.
-      if (netDebtDecrease > 0) {
-        await incrementDashboardMetrics(providerId, { totalToCollect: -netDebtDecrease });
-      }
     } catch (error) {
       console.error(`[onAppointmentDeleted] Transaction failed for ${appointmentId}:`, error);
       throw error;

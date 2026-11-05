@@ -1,6 +1,5 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { incrementDashboardMetrics } from "../utils/metrics_utils";
 
 const db = admin.firestore();
 
@@ -10,11 +9,11 @@ const db = admin.firestore();
  * Fires when a new appointment document is created under:
  *   providers/{providerId}/patients/{patientId}/appointments/{appointmentId}
  *
- * Responsibilities:
- *   1. Increases the patient's totalDebt by the appointment's totalAmount.
- *   2. If the patient has a positive balance (saldo a favor), auto-applies it
- *      to the new appointment (partial or full liquidation).
- *   3. Increments the dashboard's `totalToCollect` by the net debt created.
+ * Responsibility: if the patient has a positive balance (saldo a favor),
+ * auto-apply it to the new appointment (partial or full liquidation).
+ *
+ * `totalDebt` and dashboard `totalToCollect` are owned by `onAppointmentWritten`,
+ * which recomputes them from the unpaid appointments after this runs.
  */
 export const onAppointmentCreated = functions
   .runWith({ maxInstances: 10 })
@@ -23,18 +22,6 @@ export const onAppointmentCreated = functions
   )
   .onCreate(async (snapshot, context) => {
     const { providerId, patientId, appointmentId } = context.params;
-    const appointmentData = snapshot.data();
-
-    if (!appointmentData) {
-      console.error(`[onAppointmentCreated] No data for appointment ${appointmentId}`);
-      return;
-    }
-
-    const totalAmount: number = appointmentData.totalAmount || 0;
-    if (totalAmount <= 0) {
-      console.log(`[onAppointmentCreated] Appointment ${appointmentId} has no amount. Skipping.`);
-      return;
-    }
 
     const patientRef = db
       .collection("providers")
@@ -42,78 +29,44 @@ export const onAppointmentCreated = functions
       .collection("patients")
       .doc(patientId);
 
-    const appointmentRef = patientRef
-      .collection("appointments")
-      .doc(appointmentId);
-
-    // Track how much net debt was added so we can update the dashboard after
-    // the transaction. Must be defined outside of the transaction closure.
-    let netDebtCreated = 0;
+    const appointmentRef = snapshot.ref;
 
     try {
       await db.runTransaction(async (transaction) => {
-        const patientDoc = await transaction.get(patientRef);
+        // Re-read inside the transaction: on a retried delivery the balance may
+        // already have been applied, so we work from the current state.
+        const [patientDoc, appointmentDoc] = await Promise.all([
+          transaction.get(patientRef),
+          transaction.get(appointmentRef),
+        ]);
 
-        if (!patientDoc.exists) {
-          console.error(`[onAppointmentCreated] Patient ${patientId} not found.`);
-          return;
-        }
+        if (!patientDoc.exists || !appointmentDoc.exists) return;
 
-        const patientData = patientDoc.data()!;
-        const currentBalance: number = patientData.balance || 0;
-        const currentTotalDebt: number = patientData.totalDebt || 0;
+        const appData = appointmentDoc.data()!;
+        if (appData.status !== "unpaid") return;
 
-        if (currentBalance >= totalAmount) {
-          // Balance covers the entire appointment → auto-liquidate, net debt = 0
-          transaction.update(appointmentRef, {
-            amountPaid: totalAmount,
-            status: "liquidated",
-          });
-          transaction.update(patientRef, {
-            balance: currentBalance - totalAmount,
-          });
-          netDebtCreated = 0;
+        const totalAmount: number = appData.totalAmount || 0;
+        const amountPaid: number = appData.amountPaid || 0;
+        const pending = totalAmount - amountPaid;
+        const currentBalance: number = patientDoc.data()!.balance || 0;
 
-          console.log(
-            `[onAppointmentCreated] Auto-liquidated appointment ${appointmentId}. ` +
-            `Balance: ${currentBalance} → ${currentBalance - totalAmount}`
-          );
-        } else if (currentBalance > 0) {
-          // Partial balance → apply what we have
-          transaction.update(appointmentRef, {
-            amountPaid: currentBalance,
-            status: "unpaid",
-          });
-          const partialDebt = totalAmount - currentBalance;
-          transaction.update(patientRef, {
-            balance: 0,
-            totalDebt: currentTotalDebt + partialDebt,
-          });
-          netDebtCreated = partialDebt;
+        if (pending <= 0 || currentBalance <= 0) return;
 
-          console.log(
-            `[onAppointmentCreated] Partial balance applied to ${appointmentId}. ` +
-            `Balance used: ${currentBalance}. Net debt increase: ${partialDebt}`
-          );
-        } else {
-          // No balance → full debt increase
-          transaction.update(patientRef, {
-            totalDebt: currentTotalDebt + totalAmount,
-          });
-          netDebtCreated = totalAmount;
+        const applied = Math.min(currentBalance, pending);
+        const newAmountPaid = amountPaid + applied;
 
-          console.log(
-            `[onAppointmentCreated] Debt increased for patient ${patientId}. ` +
-            `totalDebt: ${currentTotalDebt} → ${currentTotalDebt + totalAmount}`
-          );
-        }
+        transaction.update(appointmentRef, {
+          amountPaid: newAmountPaid,
+          status: newAmountPaid >= totalAmount ? "liquidated" : "unpaid",
+        });
+        transaction.update(patientRef, {
+          balance: currentBalance - applied,
+        });
+
+        console.log(
+          `[onAppointmentCreated] Balance applied to appointment ${appointmentId}.`
+        );
       });
-
-      // Update the provider's pre-calculated dashboard metrics.
-      // Done outside the transaction; dashboard is a best-effort metric.
-      if (netDebtCreated > 0) {
-        await incrementDashboardMetrics(providerId, { totalToCollect: netDebtCreated });
-      }
     } catch (error) {
       console.error(`[onAppointmentCreated] Transaction failed for ${appointmentId}:`, error);
       throw error; // Re-throw to trigger retry

@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { MONTHLY_INTEREST_RATE, calculateInterest } from "../utils/dateAndInterest";
-import { incrementDashboardMetrics, resetMonthlyRevenue } from "../utils/metrics_utils";
+import { resetMonthlyRevenue } from "../utils/metrics_utils";
 
 const db = admin.firestore();
 
@@ -9,7 +9,7 @@ const db = admin.firestore();
  * Cron Job that runs on the 28th of every month at 15:00.
  * 1. Finds unpaid appointments older than 1 month.
  * 2. Applies monthly interest to the remaining amount.
- * 3. Updates Patient's totalDebt.
+ * 3. Patient's totalDebt is resynced by onAppointmentWritten.
  * 4. Triggers WhatsApp reminder logic.
  */
 export const monthlyDebtProcessor = functions
@@ -38,8 +38,8 @@ export const monthlyDebtProcessor = functions
     const batch = db.batch();
     let updatesCount = 0;
 
-    // Track interest added per provider: { providerId -> totalInterest }
-    const providerInterestMap = new Map<string, number>();
+    // Providers whose patients accrued interest this cycle
+    const providerInterestMap = new Map<string, boolean>();
 
     for (const patientDoc of patientsWithDebtSnapshot.docs) {
       const patientId = patientDoc.id;
@@ -78,16 +78,12 @@ export const monthlyDebtProcessor = functions
         }
       }
 
-      // Update patient's total debt if interest was added
+      // totalDebt is NOT written here: each appointment update fires
+      // onAppointmentWritten, which recomputes it (and totalToCollect).
+      // Writing an absolute value computed from this stale read raced with
+      // concurrent payment triggers and caused lost updates.
       if (totalInterestAddedToPatient > 0) {
-        const newTotalDebt = patientData.totalDebt + totalInterestAddedToPatient;
-        batch.update(patientDoc.ref, {
-          totalDebt: newTotalDebt,
-        });
-        updatesCount++;
-        // Accumulate interest per provider for dashboard update
-        const prev = providerInterestMap.get(providerId) ?? 0;
-        providerInterestMap.set(providerId, prev + totalInterestAddedToPatient);
+        providerInterestMap.set(providerId, true);
       }
 
       // Queue WhatsApp Reminder
@@ -103,14 +99,9 @@ export const monthlyDebtProcessor = functions
       await batch.commit();
     }
 
-    // For each provider: reset monthlyRevenue (new cycle) AND increment
-    // totalToCollect by the interest their patients just accrued.
-    const dashboardPromises = Array.from(providerInterestMap.entries()).map(
-      ([pid, interestAdded]) =>
-        Promise.all([
-          resetMonthlyRevenue(pid),
-          incrementDashboardMetrics(pid, { totalToCollect: interestAdded }),
-        ])
+    // Reset monthlyRevenue (new cycle). totalToCollect is owned by onAppointmentWritten.
+    const dashboardPromises = Array.from(providerInterestMap.keys()).map(
+      (pid) => resetMonthlyRevenue(pid)
     );
     await Promise.all(dashboardPromises);
     console.log(`[monthlyDebtProcessor] Updated dashboard for ${providerInterestMap.size} provider(s).`);

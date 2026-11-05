@@ -25,6 +25,8 @@ mixin _$CommunicationLog {
   String get status => throw _privateConstructorUsedError;
   double get totalDebtAtThatTime => throw _privateConstructorUsedError;
   String? get patientName => throw _privateConstructorUsedError;
+  String? get messageType => throw _privateConstructorUsedError;
+  Map<String, String>? get variables => throw _privateConstructorUsedError;
 
   /// Create a copy of CommunicationLog
   /// with the given fields replaced by the non-null parameter values.
@@ -49,6 +51,8 @@ abstract class $CommunicationLogCopyWith<$Res> {
     String status,
     double totalDebtAtThatTime,
     String? patientName,
+    String? messageType,
+    Map<String, String>? variables,
   });
 }
 
@@ -75,6 +79,8 @@ class _$CommunicationLogCopyWithImpl<$Res, $Val extends CommunicationLog>
     Object? status = null,
     Object? totalDebtAtThatTime = null,
     Object? patientName = freezed,
+    Object? messageType = freezed,
+    Object? variables = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -118,6 +124,16 @@ class _$CommunicationLogCopyWithImpl<$Res, $Val extends CommunicationLog>
                     ? _value.patientName
                     : patientName // ignore: cast_nullable_to_non_nullable
                         as String?,
+            messageType:
+                freezed == messageType
+                    ? _value.messageType
+                    : messageType // ignore: cast_nullable_to_non_nullable
+                        as String?,
+            variables:
+                freezed == variables
+                    ? _value.variables
+                    : variables // ignore: cast_nullable_to_non_nullable
+                        as Map<String, String>?,
           )
           as $Val,
     );
@@ -142,6 +158,8 @@ abstract class _$$CommunicationLogImplCopyWith<$Res>
     String status,
     double totalDebtAtThatTime,
     String? patientName,
+    String? messageType,
+    Map<String, String>? variables,
   });
 }
 
@@ -167,6 +185,8 @@ class __$$CommunicationLogImplCopyWithImpl<$Res>
     Object? status = null,
     Object? totalDebtAtThatTime = null,
     Object? patientName = freezed,
+    Object? messageType = freezed,
+    Object? variables = freezed,
   }) {
     return _then(
       _$CommunicationLogImpl(
@@ -210,6 +230,16 @@ class __$$CommunicationLogImplCopyWithImpl<$Res>
                 ? _value.patientName
                 : patientName // ignore: cast_nullable_to_non_nullable
                     as String?,
+        messageType:
+            freezed == messageType
+                ? _value.messageType
+                : messageType // ignore: cast_nullable_to_non_nullable
+                    as String?,
+        variables:
+            freezed == variables
+                ? _value._variables
+                : variables // ignore: cast_nullable_to_non_nullable
+                    as Map<String, String>?,
       ),
     );
   }
@@ -227,7 +257,9 @@ class _$CommunicationLogImpl implements _CommunicationLog {
     required this.status,
     required this.totalDebtAtThatTime,
     this.patientName,
-  });
+    this.messageType,
+    final Map<String, String>? variables,
+  }) : _variables = variables;
 
   @override
   final String id;
@@ -245,10 +277,21 @@ class _$CommunicationLogImpl implements _CommunicationLog {
   final double totalDebtAtThatTime;
   @override
   final String? patientName;
+  @override
+  final String? messageType;
+  final Map<String, String>? _variables;
+  @override
+  Map<String, String>? get variables {
+    final value = _variables;
+    if (value == null) return null;
+    if (_variables is EqualUnmodifiableMapView) return _variables;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
 
   @override
   String toString() {
-    return 'CommunicationLog(id: $id, patientId: $patientId, providerId: $providerId, messageId: $messageId, sentAt: $sentAt, status: $status, totalDebtAtThatTime: $totalDebtAtThatTime, patientName: $patientName)';
+    return 'CommunicationLog(id: $id, patientId: $patientId, providerId: $providerId, messageId: $messageId, sentAt: $sentAt, status: $status, totalDebtAtThatTime: $totalDebtAtThatTime, patientName: $patientName, messageType: $messageType, variables: $variables)';
   }
 
   @override
@@ -268,7 +311,13 @@ class _$CommunicationLogImpl implements _CommunicationLog {
             (identical(other.totalDebtAtThatTime, totalDebtAtThatTime) ||
                 other.totalDebtAtThatTime == totalDebtAtThatTime) &&
             (identical(other.patientName, patientName) ||
-                other.patientName == patientName));
+                other.patientName == patientName) &&
+            (identical(other.messageType, messageType) ||
+                other.messageType == messageType) &&
+            const DeepCollectionEquality().equals(
+              other._variables,
+              _variables,
+            ));
   }
 
   @override
@@ -282,6 +331,8 @@ class _$CommunicationLogImpl implements _CommunicationLog {
     status,
     totalDebtAtThatTime,
     patientName,
+    messageType,
+    const DeepCollectionEquality().hash(_variables),
   );
 
   /// Create a copy of CommunicationLog
@@ -306,6 +357,8 @@ abstract class _CommunicationLog implements CommunicationLog {
     required final String status,
     required final double totalDebtAtThatTime,
     final String? patientName,
+    final String? messageType,
+    final Map<String, String>? variables,
   }) = _$CommunicationLogImpl;
 
   @override
@@ -324,6 +377,10 @@ abstract class _CommunicationLog implements CommunicationLog {
   double get totalDebtAtThatTime;
   @override
   String? get patientName;
+  @override
+  String? get messageType;
+  @override
+  Map<String, String>? get variables;
 
   /// Create a copy of CommunicationLog
   /// with the given fields replaced by the non-null parameter values.

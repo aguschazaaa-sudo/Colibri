@@ -1,9 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:cobrador/domain/provider.dart' as domain;
+import 'package:cobrador/presentation/home/widgets/drawer_header.dart' show DrawerProfileHeader;
 import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:cobrador/providers/auth_providers.dart';
-import 'package:go_router/go_router.dart';
 
 class HomeDrawer extends ConsumerWidget {
   final bool isPermanent;
@@ -15,56 +18,26 @@ class HomeDrawer extends ConsumerWidget {
     final currentPath = GoRouterState.of(context).uri.path;
     final authState = ref.watch(authStateProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+
+    final provider = authState.value;
+    final photoUrl = firebase_auth.FirebaseAuth.instance.currentUser?.photoURL;
 
     return Drawer(
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-            ),
-            accountName: Text(
-              authState.value?.name ?? 'Profesional',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            accountEmail: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.2), // Active tint
-                    borderRadius: BorderRadius.circular(AppSpacing.sm),
-                  ),
-                  child: Text(
-                    'Suscripción Activa',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              child: const Icon(Icons.person),
-            ),
+          DrawerProfileHeader(
+            name: provider?.name ?? 'Profesional',
+            email: provider?.email ?? '',
+            plan: provider?.plan ?? domain.SubscriptionPlan.none,
+            isTrial: provider?.isTrial ?? true,
+            photoUrl: photoUrl,
           ),
           ListTile(
             leading: const Icon(Icons.home_outlined),
             title: const Text('Inicio'),
             selected: currentPath.startsWith('/home'),
             selectedColor: colorScheme.primary,
-            selectedTileColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.3,
-            ),
+            selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
             onTap: () {
               if (!isPermanent) Navigator.pop(context);
               context.go('/home');
@@ -75,9 +48,7 @@ class HomeDrawer extends ConsumerWidget {
             title: const Text('Directorio de Pacientes'),
             selected: currentPath.startsWith('/patients'),
             selectedColor: colorScheme.primary,
-            selectedTileColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.3,
-            ),
+            selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
             onTap: () {
               if (!isPermanent) Navigator.pop(context);
               context.go('/patients');
@@ -88,9 +59,7 @@ class HomeDrawer extends ConsumerWidget {
             title: const Text('Finanzas'),
             selected: currentPath.startsWith('/finances'),
             selectedColor: colorScheme.primary,
-            selectedTileColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.3,
-            ),
+            selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
             onTap: () {
               if (!isPermanent) Navigator.pop(context);
               context.go('/finances');
@@ -101,9 +70,7 @@ class HomeDrawer extends ConsumerWidget {
             title: const Text('Recordatorios'),
             selected: currentPath.startsWith('/reminders'),
             selectedColor: colorScheme.primary,
-            selectedTileColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.3,
-            ),
+            selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
             onTap: () {
               if (!isPermanent) Navigator.pop(context);
               context.go('/reminders');
@@ -116,23 +83,10 @@ class HomeDrawer extends ConsumerWidget {
             title: const Text('Ajustes'),
             selected: currentPath.startsWith('/settings'),
             selectedColor: colorScheme.primary,
-            selectedTileColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.3,
-            ),
+            selectedTileColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
             onTap: () {
               if (!isPermanent) Navigator.pop(context);
               context.go('/settings');
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.logout_rounded, color: colorScheme.error),
-            title: Text(
-              'Cerrar sesión',
-              style: TextStyle(color: colorScheme.error),
-            ),
-            onTap: () {
-              if (!isPermanent) Navigator.pop(context);
-              ref.read(authNotifierProvider.notifier).logout();
             },
           ),
           const SizedBox(height: AppSpacing.lg),

@@ -1,0 +1,60 @@
+version = 1
+
+[defaults]
+language = "es"
+project = "Cobrador"
+stack = ["Flutter", "Riverpod", "GoRouter", "Dio", "Freezed", "Firebase"]
+
+[[agent]]
+id = "ui-atomic-composer"
+name = "UI Atomic Composer"
+prompt_path = ".claude/prompts/ui/ui-atomic-composer.md"
+tags = ["ui", "flutter", "atomic-design", "molecules", "organisms", "riverpod"]
+
+[[agent]]
+id = "ui-states-polisher"
+name = "UI States Polisher"
+prompt_path = ".claude/prompts/ui/ui-states-polisher.md"
+tags = ["ui", "ux", "loading", "error", "empty", "skeletonizer", "riverpod"]
+
+[[agent]]
+id = "ui-motion-engineer"
+name = "UI Motion Engineer"
+prompt_path = ".claude/prompts/ui/ui-motion-engineer.md"
+tags = ["ui", "motion", "material3", "animations", "performance", "reduced-motion"]
+
+[[agent]]
+id = "testing-tdd-enforcer"
+name = "Testing TDD Enforcer"
+prompt_path = ".claude/prompts/testing/testing-tdd-enforcer.md"
+tags = ["testing", "tdd", "flutter-test", "mocktail", "negative-paths"]
+
+[[agent]]
+id = "firebase-boundary-guardian"
+name = "Firebase Boundary Guardian"
+prompt_path = ".claude/prompts/platform/firebase-boundary-guardian.md"
+tags = ["firebase", "clean-architecture", "data-layer", "failures", "emulators", "security"]
+
+[[agent]]
+id = "security-guardian"
+name = "Security Guardian"
+prompt_path = ".claude/agents/security-guardian.md"
+tags = ["security", "owasp", "code-smells", "multi-tenancy", "pii", "audit", "pre-commit"]
+
+[[agent]]
+id = "documentation-keeper"
+name = "Documentation Keeper"
+prompt_path = ".claude/agents/documentation-keeper.md"
+tags = ["documentation", "dartdoc", "readme", "changelog", "api-docs"]
+
+[[agent]]
+id = "planner"
+name = "Planner"
+prompt_path = ".claude/agents/planner.md"
+tags = ["planning", "architecture", "happy-path", "unhappy-path", "risks", "questions"]
+
+[[agent]]
+id = "orchestrator"
+name = "Orchestrator"
+prompt_path = ".claude/agents/orchestrator.md"
+tags = ["orchestration", "pipeline", "multi-agent", "coordination", "tdd-first"]

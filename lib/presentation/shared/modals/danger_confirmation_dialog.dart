@@ -93,8 +93,8 @@ class _DangerConfirmationDialogState extends State<DangerConfirmationDialog> {
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.error,
             foregroundColor: colorScheme.onError,
-            disabledBackgroundColor: colorScheme.error.withOpacity(0.3),
-            disabledForegroundColor: colorScheme.onError.withOpacity(0.5),
+            disabledBackgroundColor: colorScheme.error.withValues(alpha: 0.3),
+            disabledForegroundColor: colorScheme.onError.withValues(alpha: 0.5),
           ),
           child: Text(widget.confirmButtonText),
         ),

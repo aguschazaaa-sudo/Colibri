@@ -1,5 +1,6 @@
 import 'package:cobrador/presentation/home/widgets/home_drawer.dart';
 import 'package:cobrador/presentation/providers/shell_state_provider.dart';
+import 'package:cobrador/presentation/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +23,14 @@ class AppShell extends ConsumerWidget {
     final shell = ref.watch(shellStateProvider);
     final isLargeScreen = MediaQuery.sizeOf(context).width >= 900;
 
+    final constrainedChild = Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppSpacing.maxBodyWidth),
+        child: child,
+      ),
+    );
+
     if (isLargeScreen) {
       return Scaffold(
         appBar: _buildAppBar(context, shell),
@@ -29,11 +38,9 @@ class AppShell extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Permanent drawer — never animates
-            RepaintBoundary(
-              child: HomeDrawer(isPermanent: true),
-            ),
+            const RepaintBoundary(child: HomeDrawer(isPermanent: true)),
             // Active page content
-            Expanded(child: child),
+            Expanded(child: constrainedChild),
           ],
         ),
         floatingActionButton: shell.floatingActionButton,
@@ -43,7 +50,8 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       appBar: _buildAppBar(context, shell),
       drawer: const HomeDrawer(isPermanent: false),
-      body: child,
+      endDrawer: shell.endDrawer,
+      body: constrainedChild,
       floatingActionButton: shell.floatingActionButton,
     );
   }
@@ -69,6 +77,7 @@ extension ShellPageExtension on WidgetRef {
     required String title,
     List<Widget> actions = const [],
     Widget? floatingActionButton,
+    Widget? endDrawer,
   }) {
     // Schedule after the current frame to avoid calling setState during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -76,6 +85,7 @@ extension ShellPageExtension on WidgetRef {
         title: title,
         actions: actions,
         floatingActionButton: floatingActionButton,
+        endDrawer: endDrawer,
       );
     });
   }

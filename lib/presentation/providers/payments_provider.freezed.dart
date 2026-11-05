@@ -172,7 +172,9 @@ class __$$PaymentsStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$PaymentsStateImpl implements _PaymentsState {
+class _$PaymentsStateImpl
+    with DiagnosticableTreeMixin
+    implements _PaymentsState {
   const _$PaymentsStateImpl({
     final List<Payment> payments = const [],
     this.cursor = null,
@@ -204,8 +206,20 @@ class _$PaymentsStateImpl implements _PaymentsState {
   final AsyncValue<void> status;
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'PaymentsState(payments: $payments, cursor: $cursor, hasMore: $hasMore, isLoadingMore: $isLoadingMore, status: $status)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'PaymentsState'))
+      ..add(DiagnosticsProperty('payments', payments))
+      ..add(DiagnosticsProperty('cursor', cursor))
+      ..add(DiagnosticsProperty('hasMore', hasMore))
+      ..add(DiagnosticsProperty('isLoadingMore', isLoadingMore))
+      ..add(DiagnosticsProperty('status', status));
   }
 
   @override

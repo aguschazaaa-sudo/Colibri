@@ -1,4 +1,5 @@
 import 'package:cobrador/presentation/providers/repository_providers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -28,7 +29,7 @@ class PaymentsNotifier extends StateNotifier<PaymentsState> {
   Future<void> fetchFirstPage() async {
     state = state.copyWith(status: const AsyncValue.loading());
 
-    print('🟢 [PaymentsNotifier] Iniciando fetchFirstPage (limit: 8)');
+    debugPrint('🟢 [PaymentsNotifier] Iniciando fetchFirstPage (limit: 8)');
     final repo = ref.read(ledgerRepositoryProvider);
     final result = await repo.getPaymentsPage(providerId: providerId, limit: 8);
 
@@ -60,7 +61,7 @@ class PaymentsNotifier extends StateNotifier<PaymentsState> {
 
     state = state.copyWith(isLoadingMore: true);
 
-    print(
+    debugPrint(
       '🟡 [PaymentsNotifier] fetchNextPage activado (Cursor: ${state.cursor != null ? "Válido" : "null"})',
     );
     final repo = ref.read(ledgerRepositoryProvider);

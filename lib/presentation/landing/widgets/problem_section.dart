@@ -20,41 +20,49 @@ class ProblemSection extends StatelessWidget {
         child: AppSpacing.constrained(
           child: Column(
             children: [
-              // ── Stat number ──
-              Text(
-                '40%',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 72,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
-                  height: 1,
+              // ── Gancho ──
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Text(
+                  'Las 10:00. Nadie entra.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                    height: 1.1,
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
 
-              // ── Description ──
+              // ── Cuerpo ──
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 520),
                 child: Text(
-                  'de los profesionales de salud independientes pierde '
-                  'ingresos por deudas no cobradas.',
+                  'Un turno asignado, una hora bloqueada, un paciente que no llegó.\n'
+                  'Eso pasa seguido. Y casi nunca se cobra.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: colorScheme.onSurface,
                     height: 1.4,
+                    fontSize: 20,
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
 
+              // ── Cierre ──
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Text(
-                  'No es falta de pacientes — es falta de herramientas.',
+                  '¿Le mandás un mensaje? ¿Lo llamás?\n'
+                  '¿O lo dejás pasar para no incomodar?',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontSize: 18,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ),

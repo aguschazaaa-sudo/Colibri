@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cobrador/main.dart';
-import 'package:cobrador/router/app_router.dart';
+import 'package:cobrador/providers/auth_providers.dart';
 
 void main() {
   testWidgets('Landing page renders Colibrí brand', (

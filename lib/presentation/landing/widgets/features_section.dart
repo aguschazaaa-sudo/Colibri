@@ -13,8 +13,8 @@ class FeaturesSection extends StatelessWidget {
       icon: Icons.notifications_active_outlined,
       title: 'Recordatorios automáticos',
       description:
-          'WhatsApp una vez al mes, sin que muevas un dedo. '
-          'Colibrí se encarga.',
+          'Antes de que el paciente se olvide del turno o del pago pendiente, '
+          'Colibrí le avisa por WhatsApp. Menos faltas, menos silencios incómodos.',
     ),
     _FeatureData(
       icon: Icons.bar_chart_rounded,

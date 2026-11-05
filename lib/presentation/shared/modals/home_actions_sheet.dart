@@ -62,7 +62,7 @@ class HomeActionsSheet extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.event_repeat_rounded),
-            title: const Text('Abono Recurrente'),
+            title: const Text('Turno Recurrente'),
             onTap: () {
               Navigator.pop(context);
               showModalBottomSheet(

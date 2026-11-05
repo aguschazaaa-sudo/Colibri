@@ -55,6 +55,12 @@ final authStateProvider = StreamProvider<domain.Provider?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
+/// Provider to track if the splash screen has been shown successfully.
+final splashShownProvider = StateProvider<bool>((ref) => false);
+
+/// Stores the URL the user originally requested before being redirected to splash.
+final preSplashDestinationProvider = StateProvider<String?>((ref) => null);
+
 // ── GoRouter refresh notifier ──────────────────────────────────────────────
 
 /// Converts [authStateProvider] into a [Listenable] for GoRouter's
@@ -62,6 +68,9 @@ final authStateProvider = StreamProvider<domain.Provider?>((ref) {
 class AuthStateNotifier extends ChangeNotifier {
   AuthStateNotifier(Ref ref) {
     ref.listen<AsyncValue<domain.Provider?>>(authStateProvider, (_, __) {
+      notifyListeners();
+    });
+    ref.listen<bool>(splashShownProvider, (_, __) {
       notifyListeners();
     });
   }

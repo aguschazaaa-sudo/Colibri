@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(dart *)",
+      "Bash(dart.bat *)",
+      "Bash(flutter *)",
+      "Bash(flutter.bat *)",
+      "Bash(npm test *)",
+      "Bash(npm t *)",
+      "Bash(npm run test *)",
+      "Bash(npx jest *)",
+      "Bash(jest *)",
+      "Bash(yarn test *)",
+      "PowerShell(dart *)",
+      "PowerShell(dart.bat *)",
+      "PowerShell(flutter *)",
+      "PowerShell(flutter.bat *)",
+      "PowerShell(npm test *)",
+      "PowerShell(npm t *)",
+      "PowerShell(npm run test *)",
+      "PowerShell(npx jest *)",
+      "PowerShell(jest *)",
+      "PowerShell(yarn test *)"
+    ]
+  }
+}

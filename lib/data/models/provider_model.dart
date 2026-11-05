@@ -18,6 +18,9 @@ class ProviderModel {
   final List<String> nonWorkingDays;
   final List<VacationPeriod> vacations;
   final DateTime createdAt;
+  final String? mpPreapprovalId;
+  final String? profession;
+  final int defaultSessionDurationMinutes;
 
   const ProviderModel({
     required this.id,
@@ -31,11 +34,14 @@ class ProviderModel {
     this.nonWorkingDays = const [],
     this.vacations = const [],
     required this.createdAt,
+    this.mpPreapprovalId,
+    this.profession,
+    this.defaultSessionDurationMinutes = 45,
   });
 
   /// Creates a [ProviderModel] from a Firebase Auth user's basic info.
   ///
-  /// New users get a 5-day basic trial.
+  /// New users get a 15-day basic trial.
   factory ProviderModel.fromFirebaseUser({
     required String uid,
     required String? email,
@@ -47,7 +53,7 @@ class ProviderModel {
       name: displayName ?? '',
       subscriptionStatus: SubscriptionStatus.active,
       plan: SubscriptionPlan.basic,
-      subscriptionExpiresAt: DateTime.now().add(const Duration(days: 5)),
+      subscriptionExpiresAt: DateTime.now().add(const Duration(days: 15)),
       defaultMonthlyInterestRate: 0.0,
       discountPercentage: 0.0,
       nonWorkingDays: const [
@@ -89,6 +95,9 @@ class ProviderModel {
               )
               .toList(),
       'createdAt': Timestamp.fromDate(createdAt),
+      if (mpPreapprovalId != null) 'mpPreapprovalId': mpPreapprovalId,
+      if (profession != null) 'profession': profession,
+      'defaultSessionDurationMinutes': defaultSessionDurationMinutes,
     };
   }
 
@@ -133,6 +142,10 @@ class ProviderModel {
           json['createdAt'] != null
               ? (json['createdAt'] as Timestamp).toDate()
               : DateTime.now(),
+      mpPreapprovalId: json['mpPreapprovalId'] as String?,
+      profession: json['profession'] as String?,
+      defaultSessionDurationMinutes:
+          (json['defaultSessionDurationMinutes'] as int?) ?? 45,
     );
   }
 
@@ -150,6 +163,9 @@ class ProviderModel {
       nonWorkingDays: nonWorkingDays,
       vacations: vacations,
       createdAt: createdAt,
+      mpPreapprovalId: mpPreapprovalId,
+      profession: profession,
+      defaultSessionDurationMinutes: defaultSessionDurationMinutes,
     );
   }
 }

@@ -54,7 +54,7 @@ class RecurringAppointmentsList extends ConsumerWidget {
                 padding: AppSpacing.edgeInsetsH,
                 child: Card(
                   elevation: 0,
-                  color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Center(
@@ -187,6 +187,7 @@ class _RecurringAppointmentTile extends StatelessWidget {
                   builder:
                       (_) => CreateRecurringAppointmentSheet(
                         initialPatientId: appointment.patientId,
+                        initialRecurringAppointment: appointment,
                       ),
                 );
               },

@@ -40,9 +40,20 @@ service cloud.firestore {
       }
       
       // Subcolección de Pacientes — el path ya garantiza el aislamiento por provider.
+      // `totalDebt` y `balance` son campos del ledger, mantenidos SOLO por
+      // Cloud Functions (Admin SDK). El cliente no puede modificarlos:
+      //   - create: deben ser 0 (o estar ausentes).
+      //   - update: no pueden figurar entre las claves modificadas.
       match /patients/{patientId} {
-        allow read, update, delete: if isOwner(providerId);
-        allow create: if isOwner(providerId);
+        allow read, delete: if isOwner(providerId);
+        allow create: if isOwner(providerId)
+          && (!('totalDebt' in request.resource.data)
+              || request.resource.data.totalDebt == 0)
+          && (!('balance' in request.resource.data)
+              || request.resource.data.balance == 0);
+        allow update: if isOwner(providerId)
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['totalDebt', 'balance']);
         
         // Subcolección de Turnos (Appointments)
         match /appointments/{appointmentId} {

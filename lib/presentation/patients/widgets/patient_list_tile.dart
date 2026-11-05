@@ -99,7 +99,7 @@ class _PatientDebtStatus extends StatelessWidget {
 
     if (hasDebt) {
       indicatorColor = colorScheme.secondary;
-      text = 'Deuda: ${currencyFormat.format(debt)}';
+      text = 'Pendiente: ${currencyFormat.format(debt)}';
       fontWeight = FontWeight.bold;
     } else if (hasCredit) {
       indicatorColor = colorScheme.primary;
@@ -107,7 +107,7 @@ class _PatientDebtStatus extends StatelessWidget {
       fontWeight = FontWeight.bold;
     } else {
       indicatorColor = colorScheme.primary;
-      text = 'Sin deuda';
+      text = 'Al día';
       fontWeight = FontWeight.normal;
     }
 
@@ -145,7 +145,7 @@ class _PatientQuickActions extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.event_repeat_rounded),
-          tooltip: 'Abono recurrente',
+          tooltip: 'Turno recurrente',
           onPressed: () {
             showModalBottomSheet(
               context: context,

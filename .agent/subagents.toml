@@ -1,0 +1,39 @@
+version = 1
+
+[defaults]
+language = "es"
+project = "Cobrador"
+stack = ["Flutter", "Riverpod", "GoRouter", "Dio", "Freezed", "Firebase"]
+
+# Subagents "manuales": cada uno tiene un prompt dedicado en Markdown.
+# La idea es que tu IDE/runner elija un agente por `id` y le pase el prompt.
+
+[[agent]]
+id = "ui-atomic-composer"
+name = "UI Atomic Composer"
+prompt_path = ".agent/prompts/ui/ui-atomic-composer.md"
+tags = ["ui", "flutter", "atomic-design", "molecules", "organisms", "riverpod"]
+
+[[agent]]
+id = "ui-states-polisher"
+name = "UI States Polisher"
+prompt_path = ".agent/prompts/ui/ui-states-polisher.md"
+tags = ["ui", "ux", "loading", "error", "empty", "skeletonizer", "riverpod"]
+
+[[agent]]
+id = "ui-motion-engineer"
+name = "UI Motion Engineer"
+prompt_path = ".agent/prompts/ui/ui-motion-engineer.md"
+tags = ["ui", "motion", "material3", "animations", "performance", "reduced-motion"]
+
+[[agent]]
+id = "testing-tdd-enforcer"
+name = "Testing TDD Enforcer"
+prompt_path = ".agent/prompts/testing/testing-tdd-enforcer.md"
+tags = ["testing", "tdd", "flutter-test", "mocktail", "negative-paths"]
+
+[[agent]]
+id = "firebase-boundary-guardian"
+name = "Firebase Boundary Guardian"
+prompt_path = ".agent/prompts/platform/firebase-boundary-guardian.md"
+tags = ["firebase", "clean-architecture", "data-layer", "failures", "emulators", "security"]

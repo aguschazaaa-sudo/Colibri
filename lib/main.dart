@@ -6,6 +6,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'presentation/theme/app_theme.dart';
@@ -14,7 +16,12 @@ import 'router/app_router.dart';
 const bool useEmulator = false;
 
 void main() async {
+  usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Use bundled fonts from google_fonts/ folder; no runtime HTTP requests.
+  GoogleFonts.config.allowRuntimeFetching = false;
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   if (useEmulator) {

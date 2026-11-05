@@ -19,6 +19,7 @@ class CreateRecurringAppointmentController
     required Frequency frequency,
     required DateTime baseDate,
     DateTime? endDate,
+    int? sessionDurationMinutes,
   }) async {
     state = const AsyncLoading();
 
@@ -39,6 +40,7 @@ class CreateRecurringAppointmentController
         frequency: frequency,
         baseDate: baseDate,
         endDate: endDate,
+        defaultSessionDurationMinutes: sessionDurationMinutes,
       );
 
       await ref
@@ -49,6 +51,55 @@ class CreateRecurringAppointmentController
             ).notifier,
           )
           .createRecurringAppointment(newRecurring);
+    });
+  }
+
+  Future<void> updateRecurring({
+    required String recurringAppointmentId,
+    required String patientId,
+    required String concept,
+    required double amount,
+    required Frequency frequency,
+    required DateTime baseDate,
+    required bool active,
+    required bool resetSchedule,
+    DateTime? endDate,
+    int? sessionDurationMinutes,
+  }) async {
+    state = const AsyncLoading();
+
+    state = await AsyncValue.guard(() async {
+      final auth = ref.read(firebaseAuthProvider);
+      final providerId = auth.currentUser?.uid;
+
+      if (providerId == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      final updated = RecurringAppointment(
+        id: recurringAppointmentId,
+        patientId: patientId,
+        providerId: providerId,
+        concept: concept,
+        defaultAmount: amount,
+        frequency: frequency,
+        baseDate: baseDate,
+        active: active,
+        endDate: endDate,
+        defaultSessionDurationMinutes: sessionDurationMinutes,
+      );
+
+      await ref
+          .read(
+            ledgerProvider(
+              providerId: providerId,
+              patientId: patientId,
+            ).notifier,
+          )
+          .updateRecurringAppointment(
+            updated,
+            resetSchedule: resetSchedule,
+          );
     });
   }
 }

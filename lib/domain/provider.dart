@@ -18,17 +18,24 @@ abstract class Provider with _$Provider {
     required SubscriptionStatus subscriptionStatus,
     @Default(SubscriptionPlan.none) SubscriptionPlan plan,
     DateTime? subscriptionExpiresAt,
+    String? mpPreapprovalId,
     @Default(0.0) double defaultMonthlyInterestRate,
     @Default(0.0) double discountPercentage,
     String? whatsappTemplate,
+    String? profession,
     @Default(<String>[]) List<String> nonWorkingDays,
     @Default(<VacationPeriod>[]) List<VacationPeriod> vacations,
+    @Default(45) int defaultSessionDurationMinutes,
     required DateTime createdAt,
   }) = _Provider;
 
-  bool get hasActivePlan =>
-      subscriptionStatus == SubscriptionStatus.active &&
-      plan != SubscriptionPlan.none;
+  bool get hasActivePlan {
+    if (plan == SubscriptionPlan.none) return false;
+    if (subscriptionExpiresAt == null) return false;
+    return subscriptionExpiresAt!.isAfter(DateTime.now());
+  }
+
+  bool get isTrial => mpPreapprovalId == null || mpPreapprovalId!.isEmpty;
 
   bool get canCreateAppointments => hasActivePlan;
 }

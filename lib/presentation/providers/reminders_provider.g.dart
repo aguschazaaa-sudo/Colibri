@@ -152,7 +152,7 @@ class _CommunicationLogsProviderElement
   String get providerId => (origin as CommunicationLogsProvider).providerId;
 }
 
-String _$remindersStatsHash() => r'a76df3e1c821e33e95bbdf596990cd3dd46934ba';
+String _$remindersStatsHash() => r'b9191b49f113c7d01d80292967819b9df7c7ade5';
 
 /// See also [remindersStats].
 @ProviderFor(remindersStats)

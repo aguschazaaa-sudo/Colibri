@@ -1,10 +1,13 @@
+import 'package:cobrador/domain/appointment.dart';
 import 'package:cobrador/domain/patient.dart';
+import 'package:cobrador/presentation/appointments/appointment_detail_page.dart';
 import 'package:cobrador/presentation/auth/forgot_password_page.dart';
 import 'package:cobrador/presentation/auth/login_page.dart';
 import 'package:cobrador/presentation/auth/register_page.dart';
 import 'package:cobrador/presentation/finances/finances_page.dart';
 import 'package:cobrador/presentation/home/home_page.dart';
 import 'package:cobrador/presentation/landing/landing_page.dart';
+import 'package:cobrador/presentation/landing/reportar_error_page.dart';
 import 'package:cobrador/presentation/landing/terms_page.dart';
 import 'package:cobrador/presentation/landing/privacy_page.dart';
 import 'package:cobrador/presentation/patients/patient_detail_page.dart';
@@ -18,6 +21,7 @@ import 'package:cobrador/presentation/settings/profile_page.dart';
 import 'package:cobrador/presentation/splash/splash_page.dart';
 import 'package:cobrador/presentation/subscription/subscription_page.dart';
 import 'package:cobrador/presentation/widgets/app_shell.dart';
+import 'package:cobrador/router/route_transitions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,23 +37,27 @@ import 'package:go_router/go_router.dart';
 /// are wrapped in a [ShellRoute] that renders [AppShell] persistently.
 /// The sidebar inside AppShell NEVER animates during navigation between them.
 
-/// Provider to track if the splash screen has been shown successfully.
-final splashShownProvider = StateProvider<bool>((ref) => false);
-
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
   final refreshListenable = ref.watch(authStateListenableProvider);
-  final hasShownSplash = ref.watch(splashShownProvider);
 
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: refreshListenable,
     redirect: (context, state) {
+      // Read (not watch) inside the closure — refreshListenable already
+      // triggers redirect re-evaluation when these change.
+      final authState = ref.read(authStateProvider);
+      final hasShownSplash = ref.read(splashShownProvider);
       final isLoggedIn = authState.asData?.value != null;
       final currentPath = state.matchedLocation;
 
-      // Force splash screen to show first, ignoring any initial URLs
+      // Force splash screen to show first, preserving the intended destination
       if (!hasShownSplash && currentPath != '/splash') {
+        if (currentPath != '/') {
+          Future.microtask(() {
+            ref.read(preSplashDestinationProvider.notifier).state = currentPath;
+          });
+        }
         return '/splash';
       }
 
@@ -95,6 +103,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/privacy',
         builder: (context, state) => const PrivacyPage(),
       ),
+      GoRoute(
+        path: '/reportar-error',
+        builder: (context, state) => const ReportarErrorPage(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
@@ -108,29 +120,47 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/subscription',
         builder: (context, state) => const SubscriptionPage(),
       ),
+      GoRoute(
+        path: '/appointments/:id',
+        builder: (context, state) {
+          final appointment = state.extra as Appointment;
+          return AppointmentDetailPage(appointment: appointment);
+        },
+      ),
 
       // ─── Persistent Shell ────────────────────────────────────────────────
       // All routes inside this ShellRoute share the AppShell (with its sidebar).
       // The shell is never destroyed or animated when navigating between them.
       ShellRoute(
-        builder: (context, state, child) => AppShell(child: child),
+        pageBuilder:
+            (context, state, child) =>
+                NoTransitionPage(child: AppShell(child: child)),
         routes: [
           GoRoute(
             path: '/home',
-            builder: (context, state) => const HomePage(),
+            pageBuilder:
+                (context, state) =>
+                    contentTransitionPage(state: state, child: const HomePage()),
           ),
           GoRoute(
             path: '/patients',
-            builder: (context, state) => const PatientsPage(),
+            pageBuilder:
+                (context, state) => contentTransitionPage(
+                  state: state,
+                  child: const PatientsPage(),
+                ),
             routes: [
               GoRoute(
                 path: ':id',
-                builder: (context, state) {
+                pageBuilder: (context, state) {
                   final id = state.pathParameters['id']!;
                   final patientObj = state.extra as Patient?;
-                  return PatientDetailPage(
-                    patientId: id,
-                    patientObj: patientObj,
+                  return contentTransitionPage(
+                    state: state,
+                    child: PatientDetailPage(
+                      patientId: id,
+                      patientObj: patientObj,
+                    ),
                   );
                 },
               ),
@@ -138,27 +168,51 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/finances',
-            builder: (context, state) => const FinancesPage(),
+            pageBuilder:
+                (context, state) => contentTransitionPage(
+                  state: state,
+                  child: const FinancesPage(),
+                ),
           ),
           GoRoute(
             path: '/reminders',
-            builder: (context, state) => const RemindersPage(),
+            pageBuilder:
+                (context, state) => contentTransitionPage(
+                  state: state,
+                  child: const RemindersPage(),
+                ),
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) => const SettingsPage(),
+            pageBuilder:
+                (context, state) => contentTransitionPage(
+                  state: state,
+                  child: const SettingsPage(),
+                ),
             routes: [
               GoRoute(
                 path: 'non-working-days',
-                builder: (context, state) => const NonWorkingDaysPage(),
+                pageBuilder:
+                    (context, state) => contentTransitionPage(
+                      state: state,
+                      child: const NonWorkingDaysPage(),
+                    ),
               ),
               GoRoute(
                 path: 'profile',
-                builder: (context, state) => const ProfilePage(),
+                pageBuilder:
+                    (context, state) => contentTransitionPage(
+                      state: state,
+                      child: const ProfilePage(),
+                    ),
               ),
               GoRoute(
                 path: 'notifications',
-                builder: (context, state) => const NotificationsSettingsPage(),
+                pageBuilder:
+                    (context, state) => contentTransitionPage(
+                      state: state,
+                      child: const NotificationsSettingsPage(),
+                    ),
               ),
             ],
           ),
@@ -167,3 +221,4 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+

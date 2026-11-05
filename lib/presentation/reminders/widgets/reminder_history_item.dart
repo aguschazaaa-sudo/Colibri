@@ -28,6 +28,35 @@ class ReminderHistoryItem extends StatelessWidget {
     return DateFormat('d MMM', 'es').format(log.sentAt);
   }
 
+  String get _typeLabel => switch (log.messageType) {
+        'appointment_reminder' => 'Recordatorio de turno',
+        'payment_reminder' => 'Aviso de deuda',
+        _ => 'Recordatorio',
+      };
+
+  String get _contentSnippet {
+    final vars = log.variables;
+    switch (log.messageType) {
+      case 'appointment_reminder':
+        final fecha = vars?['fecha_turno'];
+        final hora = vars?['hora_turno'];
+        if (fecha != null && hora != null) return '$fecha a las $hora';
+        if (fecha != null) return fecha;
+        return '';
+      case 'payment_reminder':
+        // Prefer monto_total from template variables (already formatted).
+        // Fall back to totalDebtAtThatTime if variables are unavailable.
+        final montoTotal = vars?['monto_total'];
+        if (montoTotal != null && montoTotal.isNotEmpty) return montoTotal;
+        final amount = log.totalDebtAtThatTime;
+        return NumberFormat.currency(locale: 'es_AR', symbol: r'$', decimalDigits: 0)
+            .format(amount);
+      default:
+        // Task 6.2: handles null and unknown messageType gracefully — returns empty string.
+        return '';
+    }
+  }
+
   // ── Status badge ──────────────────────────────────────────────────────────
 
   (String label, Color bg, Color fg) _statusBadge(ColorScheme cs) {
@@ -62,12 +91,23 @@ class ReminderHistoryItem extends StatelessWidget {
         displayName,
         style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
-      subtitle: Row(
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_relativeTime(context), style: textTheme.bodySmall),
-          const SizedBox(width: 6),
-          // WhatsApp icon
-          Icon(Icons.chat_bubble_rounded, size: 13, color: colorScheme.tertiary),
+          Text(_typeLabel, style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
+          Row(
+            children: [
+              if (_contentSnippet.isNotEmpty) ...[
+                Text(_contentSnippet, style: textTheme.bodySmall),
+                const SizedBox(width: 4),
+                Text('·', style: textTheme.bodySmall),
+                const SizedBox(width: 4),
+              ],
+              Text(_relativeTime(context), style: textTheme.bodySmall),
+              const SizedBox(width: 6),
+              Icon(Icons.chat_bubble_rounded, size: 13, color: colorScheme.tertiary),
+            ],
+          ),
         ],
       ),
       trailing: Container(

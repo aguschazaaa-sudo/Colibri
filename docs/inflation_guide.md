@@ -16,7 +16,7 @@ Cualquier persona que se suscriba a partir de ese momento, lo hará con el nuevo
 Mercado Pago no permite cambiar el precio de un "Plan Fijo" y que afecte a todos automáticamente si los montos son custom. Como cada usuario tiene un `transaction_amount` específico (por su descuento), debemos:
 
 1. **Iterar** sobre los usuarios con suscripción activa en Firestore.
-2. **Identificar** su `preapproval_id` de Mercado Pago (que guardaremos en su perfil al momento del pago).
+2. **Identificar** su `mpPreapprovalId` de Mercado Pago (guardado en el perfil del proveedor).
 3. **Llamar a la API de MP** (`PUT /preapproval/{id}`) enviando el nuevo `transaction_amount`.
 
 ---
@@ -34,7 +34,11 @@ async function applyInflation(percentage: number) {
 
   for (const doc of activeSubscribers.docs) {
     const user = doc.data();
-    const currentAmount = user.currentMonthlyPrice;
+    const baseAmount = user.plan === "premium"
+      ? pricing.premium.priceArs
+      : pricing.basic.priceArs;
+    const discount = user.discountPercentage ?? 0;
+    const currentAmount = Math.round(baseAmount * (1 - discount));
     const newAmount = Math.round(currentAmount * (1 + percentage));
 
     // Llamada a Mercado Pago para actualizar el cobro recurrente
@@ -47,8 +51,6 @@ async function applyInflation(percentage: number) {
       }
     });
 
-    // Actualizamos Firestore para que la UI refleje el nuevo monto
-    await doc.ref.update({ currentMonthlyPrice: newAmount });
   }
 }
 ```

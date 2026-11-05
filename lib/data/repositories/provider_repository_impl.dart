@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cobrador/data/models/dashboard_report_model.dart';
+import 'package:cobrador/data/models/monthly_snapshot_model.dart';
 import 'package:cobrador/data/models/provider_model.dart';
 import 'package:cobrador/data/models/subscription_pricing_model.dart';
 import 'package:cobrador/domain/dashboard_report.dart';
 import 'package:cobrador/domain/failure.dart';
+import 'package:cobrador/domain/monthly_snapshot.dart';
 import 'package:cobrador/domain/provider.dart';
 import 'package:cobrador/domain/provider_repository.dart';
 import 'package:cobrador/domain/subscription_pricing.dart';
@@ -41,7 +43,13 @@ class ProviderRepositoryImpl implements ProviderRepository {
         subscriptionStatus: provider.subscriptionStatus,
         plan: provider.plan,
         subscriptionExpiresAt: provider.subscriptionExpiresAt,
+        mpPreapprovalId: provider.mpPreapprovalId,
         defaultMonthlyInterestRate: provider.defaultMonthlyInterestRate,
+        discountPercentage: provider.discountPercentage,
+        profession: provider.profession,
+        nonWorkingDays: provider.nonWorkingDays,
+        vacations: provider.vacations,
+        defaultSessionDurationMinutes: provider.defaultSessionDurationMinutes,
         createdAt: provider.createdAt,
       );
 
@@ -182,5 +190,27 @@ class ProviderRepositoryImpl implements ProviderRepository {
       }
       return SubscriptionPricingModel.fromFirestore(snapshot).toDomain();
     });
+  }
+
+  @override
+  Stream<List<MonthlySnapshot>> watchMonthlySnapshots(
+    String providerId, {
+    int limit = 12,
+  }) {
+    if (providerId.isEmpty) return const Stream.empty();
+    return _firestore
+        .collection('providers')
+        .doc(providerId)
+        .collection('metrics')
+        .doc('dashboard')
+        .collection('monthly_snapshots')
+        .orderBy('month', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => MonthlySnapshotModel.fromFirestore(d).toDomain())
+              .toList(),
+        );
   }
 }

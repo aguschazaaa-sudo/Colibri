@@ -351,7 +351,7 @@ class _PatientRecurringAppointmentsProviderElement
       (origin as PatientRecurringAppointmentsProvider).patientId;
 }
 
-String _$ledgerHash() => r'b1cb8fd807c13c074fa41c7c4900c1fcc93d9ae4';
+String _$ledgerHash() => r'0bb40b82ca9c1aeabb044991906aa1275b5a77e6';
 
 abstract class _$Ledger
     extends BuildlessAutoDisposeStreamNotifier<List<Appointment>> {

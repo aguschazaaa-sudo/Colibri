@@ -10,7 +10,9 @@ class Patients extends _$Patients {
   @override
   Stream<List<Patient>> build(String providerId) {
     final repository = ref.watch(patientRepositoryProvider);
-    return repository.watchPatients(providerId);
+    return repository.watchPatients(providerId).map(
+      (patients) => patients..sort((a, b) => a.name.compareTo(b.name)),
+    );
   }
 
   Future<void> addPatient(Patient patient) async {

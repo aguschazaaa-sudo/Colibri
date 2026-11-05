@@ -37,6 +37,7 @@ export function distributePaymentFIFO(
       transaction.update(doc.ref, {
         amountPaid: newAmountPaid,
         status: newStatus,
+        _functionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       moneyLeftToDistribute -= amountToApply;
@@ -82,6 +83,7 @@ export function revertPaymentLIFO(
       transaction.update(doc.ref, {
         amountPaid: newAmountPaid,
         status: newStatus,
+        _functionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       moneyLeftToRevert -= amountToDeduct;

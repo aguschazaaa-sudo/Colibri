@@ -13,5 +13,7 @@ abstract class CommunicationLog with _$CommunicationLog {
     required String status,
     required double totalDebtAtThatTime,
     String? patientName,
+    String? messageType,
+    Map<String, String>? variables,
   }) = _CommunicationLog;
 }

@@ -22,7 +22,7 @@ class PatientHeaderCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             _ProfileName(name: patient.name),
             const SizedBox(height: AppSpacing.xs),
-            _ProfileContactLine(text: 'Tel: \$${patient.phoneNumber}'),
+            _ProfileContactLine(text: 'Tel: ${patient.phoneNumber}'),
             if (patient.email != null && patient.email!.isNotEmpty)
               _ProfileContactLine(text: 'Email: ${patient.email}'),
           ],

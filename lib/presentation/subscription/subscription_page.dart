@@ -7,9 +7,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:cobrador/domain/subscription_pricing.dart';
 import 'package:cobrador/presentation/providers/subscription_pricing_provider.dart';
+import 'package:cobrador/presentation/providers/provider_profile_provider.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cobrador/presentation/widgets/action_button.dart';
+import 'package:cobrador/presentation/subscription/widgets/active_plan_hero_card.dart';
+import 'package:cobrador/presentation/subscription/widgets/subscription_status_card.dart';
+import 'package:cobrador/presentation/subscription/widgets/plan_features_card.dart';
+import 'package:cobrador/presentation/subscription/widgets/subscription_actions.dart';
 
 class SubscriptionPage extends ConsumerWidget {
   const SubscriptionPage({super.key});
@@ -91,7 +96,7 @@ class _SubscriptionPricingLayer extends ConsumerWidget {
   }
 }
 
-class _SubscriptionContent extends StatelessWidget {
+class _SubscriptionContent extends ConsumerWidget {
   final domain.Provider? provider;
   final SubscriptionPricing? pricing;
 
@@ -139,10 +144,13 @@ class _SubscriptionContent extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liveProvider = provider != null
+        ? ref.watch(providerProfileProvider(provider!.id)).valueOrNull ?? provider
+        : provider;
     final daysLeft =
-        provider?.subscriptionExpiresAt != null
-            ? provider!.subscriptionExpiresAt!.difference(DateTime.now()).inDays
+        liveProvider?.subscriptionExpiresAt != null
+            ? liveProvider!.subscriptionExpiresAt!.difference(DateTime.now()).inDays
             : 0;
 
     final currencyFormat = NumberFormat.currency(
@@ -151,39 +159,35 @@ class _SubscriptionContent extends StatelessWidget {
       locale: 'es_AR',
     );
 
+    final discountPercentage = provider?.discountPercentage ?? 0.0;
+
     final basicPriceOriginal =
         pricing != null
             ? currencyFormat.format(pricing!.basic.priceArs)
-            : r'$10.000'; // Fallback
+            : r'$10.000';
     final premiumPriceOriginal =
         pricing != null
             ? currencyFormat.format(pricing!.premium.priceArs)
-            : r'$20.000'; // Fallback
-
-    final discountPercentage = provider?.discountPercentage ?? 0.0;
+            : r'$20.000';
 
     final basicPriceFinal =
         pricing != null
             ? currencyFormat.format(
               pricing!.basic.priceArs * (1 - discountPercentage),
             )
-            : currencyFormat.format(
-              10000 * (1 - discountPercentage),
-            ); // Fallback
+            : currencyFormat.format(10000 * (1 - discountPercentage));
 
     final premiumPriceFinal =
         pricing != null
             ? currencyFormat.format(
               pricing!.premium.priceArs * (1 - discountPercentage),
             )
-            : currencyFormat.format(
-              20000 * (1 - discountPercentage),
-            ); // Fallback
+            : currencyFormat.format(20000 * (1 - discountPercentage));
+
+    final hasActivePlan = liveProvider?.hasActivePlan == true;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 800;
-
         return CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -195,127 +199,41 @@ class _SubscriptionContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _HeaderSection(daysLeft: daysLeft),
+                    _HeaderSection(
+                      daysLeft: daysLeft,
+                      hasActivePlan: hasActivePlan,
+                    ),
                     const SizedBox(height: 40),
-                    if (isWide)
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: _PlanCard(
-                                    title: 'Plan Básico',
-                                    price: '$basicPriceFinal/mes',
-                                    originalPrice:
-                                        discountPercentage > 0
-                                            ? '$basicPriceOriginal/mes'
-                                            : null,
-                                    description:
-                                        'Ideal para empezar a organizar tus cobros.',
-                                    features: const [
-                                      'Registro ilimitado de pacientes',
-                                      'Carga de turnos y pagos',
-                                      'Cálculo automático de deuda',
-                                      'Soporte por email',
-                                    ],
-                                    isPremium: false,
-                                    isStretch: true,
-                                    onPressed:
-                                        () =>
-                                            _handleSubscription(context, false),
-                                  )
-                                  .animate()
-                                  .fadeIn(duration: 600.ms)
-                                  .slideY(begin: 0.2),
-                            ),
-                            const SizedBox(width: 24),
-                            Expanded(
-                              child: _PlanCard(
-                                    title: 'Plan Premium',
-                                    price: '$premiumPriceFinal/mes',
-                                    originalPrice:
-                                        discountPercentage > 0
-                                            ? '$premiumPriceOriginal/mes'
-                                            : null,
-                                    description:
-                                        'Potencia tu negocio con automatizaciones.',
-                                    features: const [
-                                      'Todo lo del Plan Básico',
-                                      'Notificaciones WhatsApp automáticas',
-                                      'Recordatorios de Turnos',
-                                      'Estadísticas avanzadas',
-                                      'Soporte prioritario',
-                                    ],
-                                    isPremium: true,
-                                    isStretch: true,
-                                    onPressed:
-                                        () =>
-                                            _handleSubscription(context, true),
-                                  )
-                                  .animate()
-                                  .fadeIn(duration: 600.ms, delay: 200.ms)
-                                  .slideY(begin: 0.2),
-                            ),
-                          ],
-                        ),
+                    if (hasActivePlan)
+                      _ActivePlanView(
+                        liveProvider: liveProvider!,
+                        basicPriceFinal: basicPriceFinal,
+                        premiumPriceFinal: premiumPriceFinal,
+                        basicPriceOriginal:
+                            discountPercentage > 0 ? basicPriceOriginal : null,
+                        premiumPriceOriginal:
+                            discountPercentage > 0 ? premiumPriceOriginal : null,
+                        onSubscribe: _handleSubscription,
                       )
                     else
-                      Column(
-                        children: [
-                          _PlanCard(
-                                title: 'Plan Básico',
-                                price: '$basicPriceFinal/mes',
-                                originalPrice:
-                                    discountPercentage > 0
-                                        ? '$basicPriceOriginal/mes'
-                                        : null,
-                                description:
-                                    'Ideal para empezar a organizar tus cobros.',
-                                features: const [
-                                  'Registro ilimitado de pacientes',
-                                  'Carga de turnos y pagos',
-                                  'Cálculo automático de deuda',
-                                  'Soporte por email',
-                                ],
-                                isPremium: false,
-                                onPressed:
-                                    () => _handleSubscription(context, false),
-                              )
-                              .animate()
-                              .fadeIn(duration: 600.ms)
-                              .slideY(begin: 0.2),
-                          const SizedBox(height: 24),
-                          _PlanCard(
-                                title: 'Plan Premium',
-                                price: '$premiumPriceFinal/mes',
-                                originalPrice:
-                                    discountPercentage > 0
-                                        ? '$premiumPriceOriginal/mes'
-                                        : null,
-                                description:
-                                    'Potencia tu negocio con automatizaciones.',
-                                features: const [
-                                  'Todo lo del Plan Básico',
-                                  'Notificaciones WhatsApp automáticas',
-                                  'Recordatorios de Turnos',
-                                  'Estadísticas avanzadas',
-                                  'Soporte prioritario',
-                                ],
-                                isPremium: true,
-                                onPressed:
-                                    () => _handleSubscription(context, true),
-                              )
-                              .animate()
-                              .fadeIn(duration: 600.ms, delay: 200.ms)
-                              .slideY(begin: 0.2),
-                        ],
+                      _PlanSelectionView(
+                        isWide: constraints.maxWidth > 800,
+                        basicPriceFinal: basicPriceFinal,
+                        premiumPriceFinal: premiumPriceFinal,
+                        basicPriceOriginal:
+                            discountPercentage > 0
+                                ? '$basicPriceOriginal/mes'
+                                : null,
+                        premiumPriceOriginal:
+                            discountPercentage > 0
+                                ? '$premiumPriceOriginal/mes'
+                                : null,
+                        onSubscribe: _handleSubscription,
                       ),
                     const SizedBox(height: 40),
                     Center(
                       child: TextButton(
-                        onPressed: () {
-                          // Handled via ref in the parent usually, but here we can use a provider read if needed
-                        },
+                        onPressed: () {},
                         child: const _LogoutButton(),
                       ),
                     ),
@@ -330,10 +248,240 @@ class _SubscriptionContent extends StatelessWidget {
   }
 }
 
+class _ActivePlanView extends ConsumerWidget {
+  final domain.Provider liveProvider;
+  final String basicPriceFinal;
+  final String premiumPriceFinal;
+  final String? basicPriceOriginal;
+  final String? premiumPriceOriginal;
+  final Future<void> Function(BuildContext, bool) onSubscribe;
+
+  const _ActivePlanView({
+    required this.liveProvider,
+    required this.basicPriceFinal,
+    required this.premiumPriceFinal,
+    this.basicPriceOriginal,
+    this.premiumPriceOriginal,
+    required this.onSubscribe,
+  });
+
+  Future<void> _handleCancel(BuildContext context, WidgetRef ref) async {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Cancelar suscripción?'),
+        content: const Text(
+          'Tu acceso continuará hasta el final del período actual. '
+          'Después se desactivarán las funcionalidades del plan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sí, cancelar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'subscriptions-cancelSubscription',
+      );
+      await callable.call();
+
+      if (!context.mounted) return;
+
+      ref.invalidate(providerProfileProvider(liveProvider.id));
+      ref.invalidate(authStateProvider);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tu suscripción fue cancelada. El acceso continúa hasta el fin del período.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cancelar la suscripción: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = liveProvider.plan == domain.SubscriptionPlan.premium;
+    final planName = isPremium ? 'Premium' : 'Básico';
+    final currentPrice = isPremium ? premiumPriceFinal : basicPriceFinal;
+    final currentOriginalPrice =
+        isPremium ? premiumPriceOriginal : basicPriceOriginal;
+    final alternatePlanName = isPremium ? 'Básico' : 'Premium';
+    final alternatePlanPrice = isPremium ? basicPriceFinal : premiumPriceFinal;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ActivePlanHeroCard(
+          planName: planName,
+          isPremium: isPremium,
+          currentPrice: currentPrice,
+          originalPrice: currentOriginalPrice,
+        ),
+        const SizedBox(height: 16),
+        SubscriptionStatusCard(
+          status: liveProvider.subscriptionStatus,
+          expiresAt: liveProvider.subscriptionExpiresAt,
+          cancelPending: false,
+        ),
+        const SizedBox(height: 16),
+        PlanFeaturesCard(isPremium: isPremium),
+        const SizedBox(height: 16),
+        SubscriptionActions(
+          isPremium: isPremium,
+          alternatePlanName: alternatePlanName,
+          alternatePlanPrice: alternatePlanPrice,
+          onChangePlan: () => onSubscribe(context, !isPremium),
+          onCancel: () => _handleCancel(context, ref),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlanSelectionView extends StatelessWidget {
+  final bool isWide;
+  final String basicPriceFinal;
+  final String premiumPriceFinal;
+  final String? basicPriceOriginal;
+  final String? premiumPriceOriginal;
+  final Future<void> Function(BuildContext, bool) onSubscribe;
+
+  const _PlanSelectionView({
+    required this.isWide,
+    required this.basicPriceFinal,
+    required this.premiumPriceFinal,
+    this.basicPriceOriginal,
+    this.premiumPriceOriginal,
+    required this.onSubscribe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isWide) {
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _PlanCard(
+                    title: 'Plan Básico',
+                    price: '$basicPriceFinal/mes',
+                    originalPrice: basicPriceOriginal,
+                    description: 'Ideal para empezar a organizar tus cobros.',
+                    features: const [
+                      'Registro ilimitado de pacientes',
+                      'Seguimiento automático de deudas por WhatsApp',
+                      'Hasta 150 recordatorios de WhatsApp al mes',
+                      'Reportes financieros mensuales',
+                      'Soporte por email',
+                    ],
+                    isPremium: false,
+                    isStretch: true,
+                    onPressed: () => onSubscribe(context, false),
+                  )
+                  .animate()
+                  .fadeIn(duration: 600.ms)
+                  .slideY(begin: 0.2),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: _PlanCard(
+                    title: 'Plan Premium',
+                    price: '$premiumPriceFinal/mes',
+                    originalPrice: premiumPriceOriginal,
+                    description:
+                        'Todo lo del plan Básico, más recordatorios de turnos sin límites.',
+                    features: const [
+                      'Todo lo incluido en el plan Básico',
+                      'Recordatorios de turnos por WhatsApp ilimitados',
+                      'Soporte prioritario por WhatsApp',
+                      'Acceso a nuevas funcionalidades primero',
+                    ],
+                    isPremium: true,
+                    isStretch: true,
+                    onPressed: () => onSubscribe(context, true),
+                  )
+                  .animate()
+                  .fadeIn(duration: 600.ms, delay: 200.ms)
+                  .slideY(begin: 0.2),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _PlanCard(
+              title: 'Plan Básico',
+              price: '$basicPriceFinal/mes',
+              originalPrice: basicPriceOriginal,
+              description: 'Ideal para empezar a organizar tus cobros.',
+              features: const [
+                'Registro ilimitado de pacientes',
+                'Seguimiento automático de deudas por WhatsApp',
+                'Hasta 150 recordatorios de WhatsApp al mes',
+                'Reportes financieros mensuales',
+                'Soporte por email',
+              ],
+              isPremium: false,
+              onPressed: () => onSubscribe(context, false),
+            )
+            .animate()
+            .fadeIn(duration: 600.ms)
+            .slideY(begin: 0.2),
+        const SizedBox(height: 24),
+        _PlanCard(
+              title: 'Plan Premium',
+              price: '$premiumPriceFinal/mes',
+              originalPrice: premiumPriceOriginal,
+              description:
+                  'Todo lo del plan Básico, más recordatorios de turnos sin límites.',
+              features: const [
+                'Todo lo incluido en el plan Básico',
+                'Recordatorios de turnos por WhatsApp ilimitados',
+                'Soporte prioritario por WhatsApp',
+                'Acceso a nuevas funcionalidades primero',
+              ],
+              isPremium: true,
+              onPressed: () => onSubscribe(context, true),
+            )
+            .animate()
+            .fadeIn(duration: 600.ms, delay: 200.ms)
+            .slideY(begin: 0.2),
+      ],
+    );
+  }
+}
+
 class _HeaderSection extends StatelessWidget {
   final int daysLeft;
+  final bool hasActivePlan;
 
-  const _HeaderSection({required this.daysLeft});
+  const _HeaderSection({required this.daysLeft, required this.hasActivePlan});
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +489,7 @@ class _HeaderSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Elige tu plan',
+          hasActivePlan ? 'Tu suscripción' : 'Elige tu plan',
           style: GoogleFonts.outfit(
             fontSize: 32,
             fontWeight: FontWeight.bold,

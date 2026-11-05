@@ -32,10 +32,16 @@ class PatientRepositoryImpl implements PatientRepository {
   Future<Either<Failure, Patient>> createPatient(Patient patient) async {
     try {
       final docRef = _patientsRef(patient.providerId).doc();
-      final entityWithId = patient.copyWith(id: docRef.id);
+      // A new patient always starts with a clean ledger; never trust the
+      // incoming entity for server-owned fields.
+      final entityWithId = patient.copyWith(
+        id: docRef.id,
+        totalDebt: 0.0,
+        balance: 0.0,
+      );
       final model = PatientModel.fromEntity(entityWithId);
 
-      await docRef.set(model.toJson());
+      await docRef.set(model.toCreateJson());
 
       return Right(model.toEntity());
     } on FirebaseException catch (e) {
@@ -54,14 +60,21 @@ class PatientRepositoryImpl implements PatientRepository {
   Future<Either<Failure, Patient>> updatePatient(Patient patient) async {
     try {
       final model = PatientModel.fromEntity(patient);
+      // Only user-editable fields: `totalDebt` / `balance` are owned by the
+      // Cloud Functions ledger and must never be written from the client.
       await _patientsRef(
         patient.providerId,
-      ).doc(patient.id).update(model.toJson());
+      ).doc(patient.id).update(model.toUpdateJson());
 
       return Right(patient);
     } on FirebaseException catch (e) {
       if (e.code == 'not-found') {
         return const Left(Failure.serverError('Paciente no encontrado.'));
+      }
+      if (e.code == 'permission-denied') {
+        return const Left(
+          Failure.serverError('No tienes permisos para editar este paciente.'),
+        );
       }
       return Left(Failure.serverError(e.message ?? 'Firebase Error'));
     } catch (e) {

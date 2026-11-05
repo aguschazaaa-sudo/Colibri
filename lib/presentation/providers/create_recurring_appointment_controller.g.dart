@@ -7,7 +7,7 @@ part of 'create_recurring_appointment_controller.dart';
 // **************************************************************************
 
 String _$createRecurringAppointmentControllerHash() =>
-    r'26eb12bd0e3836f75e410c3d21e719e0f2cb29fe';
+    r'3210239d532c87baee4196b04df23f7abe182b8d';
 
 /// See also [CreateRecurringAppointmentController].
 @ProviderFor(CreateRecurringAppointmentController)

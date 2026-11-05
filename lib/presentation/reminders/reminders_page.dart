@@ -198,7 +198,7 @@ class _HeroHeader extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Los recordatorios de cobro se enviarán el '
-                  'día 28 de cada mes a los pacientes con deuda pendiente.',
+                  'día 1 de cada mes a los pacientes con saldo pendiente.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onPrimary.withValues(alpha: 0.85),
                     height: 1.4,
@@ -424,7 +424,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'El historial de recordatorios aparecerá aquí una vez que se realice el primer envío el día 28.',
+              'El historial de recordatorios aparecerá aquí una vez que se realice el primer envío el día 1.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colorScheme.outlineVariant,

@@ -31,7 +31,7 @@ class PatientDebtSummaryCard extends StatelessWidget {
     if (hasDebt) {
       containerColor = colorScheme.secondaryContainer;
       onContainerColor = colorScheme.onSecondaryContainer;
-      titleText = 'Deuda Total';
+      titleText = 'Saldo Pendiente';
       amountText = currencyFormat.format(patient.totalDebt);
     } else if (hasCredit) {
       containerColor = colorScheme.primaryContainer;
@@ -42,7 +42,7 @@ class PatientDebtSummaryCard extends StatelessWidget {
       containerColor = colorScheme.surfaceContainerHighest;
       onContainerColor = colorScheme.onSurfaceVariant;
       titleText = 'Estado de cuenta';
-      amountText = 'Sin deuda';
+      amountText = 'Al día';
     }
 
     return Column(
@@ -61,10 +61,14 @@ class PatientDebtSummaryCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  titleText,
-                  style: textTheme.bodyLarge?.copyWith(color: onContainerColor),
+                Expanded(
+                  child: Text(
+                    titleText,
+                    style: textTheme.bodyLarge?.copyWith(color: onContainerColor),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   amountText,
                   style: textTheme.titleLarge?.copyWith(

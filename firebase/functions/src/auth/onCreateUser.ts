@@ -9,7 +9,7 @@ export const onCreateUser = functions.auth.user().onCreate(async (user) => {
   const { uid, email, displayName } = user;
 
   const now = admin.firestore.Timestamp.now();
-  const expiresAt = new admin.firestore.Timestamp(now.seconds + 5 * 24 * 60 * 60, now.nanoseconds);
+  const expiresAt = new admin.firestore.Timestamp(now.seconds + 15 * 24 * 60 * 60, now.nanoseconds);
 
   const providerDoc: any = {
     id: uid,
@@ -27,7 +27,12 @@ export const onCreateUser = functions.auth.user().onCreate(async (user) => {
   }
 
   try {
-    await admin.firestore().collection("providers").doc(uid).set(providerDoc, { merge: true });
+    const firestore = admin.firestore();
+    await firestore.collection("providers").doc(uid).set(providerDoc, { merge: true });
+    await firestore.collection("metadata").doc("global").set(
+      { providerCount: admin.firestore.FieldValue.increment(1) },
+      { merge: true }
+    );
     functions.logger.info(`Successfully created provider doc for user ${uid}`);
   } catch (error) {
     functions.logger.error(`Error creating provider doc for user ${uid}:`, error);

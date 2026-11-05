@@ -40,7 +40,7 @@ class TopDebtorsSection extends ConsumerWidget {
               return Padding(
                 padding: AppSpacing.edgeInsetsH,
                 child: Text(
-                  'No hay pacientes con deuda.',
+                  'No hay pacientes con saldo pendiente.',
                   style: textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

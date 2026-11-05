@@ -2,7 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'appointment.freezed.dart';
 
-enum AppointmentStatus { unpaid, liquidated, cancelled }
+enum AppointmentStatus { scheduled, unpaid, liquidated, cancelled }
 
 @freezed
 abstract class Appointment with _$Appointment {
@@ -18,9 +18,13 @@ abstract class Appointment with _$Appointment {
     @Default(0.0) double amountPaid,
     @Default(AppointmentStatus.unpaid) AppointmentStatus status,
     String? recurringAppointmentId,
+    DateTime? endTime,
   }) = _Appointment;
 
   double get pendingDebt => totalAmount - amountPaid;
+
+  /// Returns the duration of the appointment if [endTime] is set.
+  Duration? get duration => endTime?.difference(date);
 
   /// Calculates how many full months have passed since the appointment date
   /// to potentially apply monthly interest rates.

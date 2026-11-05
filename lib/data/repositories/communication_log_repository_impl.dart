@@ -67,11 +67,26 @@ class CommunicationLogRepositoryImpl implements CommunicationLogRepository {
         'status': 'pending',
         'totalDebtAtThatTime': totalDebtAtThatTime,
         'messageId': '',
+        'variables': {
+          'nombre_paciente': patientName ?? '',
+          'monto_total': totalDebtAtThatTime,
+        },
         'sentAt': Timestamp.fromDate(now),
         if (patientName != null) 'patientName': patientName,
       };
 
-      await docRef.set(data);
+      final patientCommRef = _firestore
+          .collection('providers')
+          .doc(providerId)
+          .collection('patients')
+          .doc(patientId)
+          .collection('communications')
+          .doc(docRef.id);
+
+      final batch = _firestore.batch();
+      batch.set(docRef, data);
+      batch.set(patientCommRef, data);
+      await batch.commit();
 
       final log = CommunicationLog(
         id: docRef.id,

@@ -47,6 +47,15 @@ class Ledger extends _$Ledger {
     result.fold((failure) => throw Exception(failure.message), (_) => null);
   }
 
+  /// Actualiza un turno existente
+  Future<void> updateAppointment(Appointment appointment) async {
+    final repository = ref.read(ledgerRepositoryProvider);
+    final result = await repository.updateAppointment(appointment);
+
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
+
+
   /// Crea un nuevo turno recurrente
   Future<void> createRecurringAppointment(
     RecurringAppointment recurringAppointment,
@@ -54,6 +63,20 @@ class Ledger extends _$Ledger {
     final repository = ref.read(ledgerRepositoryProvider);
     final result = await repository.createRecurringAppointment(
       recurringAppointment,
+    );
+
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
+  }
+
+  /// Actualiza un turno recurrente
+  Future<void> updateRecurringAppointment(
+    RecurringAppointment recurringAppointment, {
+    bool resetSchedule = false,
+  }) async {
+    final repository = ref.read(ledgerRepositoryProvider);
+    final result = await repository.updateRecurringAppointment(
+      recurringAppointment,
+      resetSchedule: resetSchedule,
     );
 
     result.fold((failure) => throw Exception(failure.message), (_) => null);

@@ -42,17 +42,15 @@ RemindersStats remindersStats(Ref ref, String providerId) {
   final totalThisMonth =
       logs
           .where(
-            (l) => l.sentAt.year == now.year && l.sentAt.month == now.month,
+            (l) =>
+                l.status == 'sent' &&
+                l.sentAt.year == now.year &&
+                l.sentAt.month == now.month,
           )
           .length;
 
-  // Next 28th: if today is already on or past 28, roll to next month
-  final DateTime nextSend;
-  if (now.day < 28) {
-    nextSend = DateTime(now.year, now.month, 28);
-  } else {
-    nextSend = DateTime(now.year, now.month + 1, 28);
-  }
+  // Next 1st: always the first day of the next month (since we are always on or past day 1).
+  final DateTime nextSend = DateTime(now.year, now.month + 1, 1);
 
   return RemindersStats(totalThisMonth: totalThisMonth, nextSendDate: nextSend);
 }

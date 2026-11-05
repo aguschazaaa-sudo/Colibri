@@ -1,20 +1,20 @@
 import 'package:cobrador/presentation/providers/provider_profile_provider.dart';
 import 'package:cobrador/presentation/theme/app_spacing.dart';
+import 'package:cobrador/presentation/widgets/app_shell.dart';
 import 'package:cobrador/domain/vacation_period.dart';
 import 'package:cobrador/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-class NonWorkingDaysPage extends ConsumerStatefulWidget {
+class NonWorkingDaysPage extends ConsumerWidget {
   const NonWorkingDaysPage({super.key});
 
-  @override
-  ConsumerState<NonWorkingDaysPage> createState() => _NonWorkingDaysPageState();
-}
-
-class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
-  Future<void> _showAddDayDialog(String providerId) async {
+  Future<void> _showAddDayDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String providerId,
+  ) async {
     final now = DateTime.now();
     final pickedDate = await showDatePicker(
       context: context,
@@ -26,7 +26,7 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
       confirmText: 'Agregar',
     );
 
-    if (pickedDate != null && mounted) {
+    if (pickedDate != null) {
       final month = pickedDate.month.toString().padLeft(2, '0');
       final day = pickedDate.day.toString().padLeft(2, '0');
       final mmDd = '$month-$day';
@@ -35,41 +35,50 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
         await ref
             .read(providerProfileProvider(providerId).notifier)
             .addNonWorkingDay(providerId, mmDd);
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Día agregado correctamente')),
           );
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Error al agregar día')));
+          ).showSnackBar(const SnackBar(content: Text('Error al agregar día')));
         }
       }
     }
   }
 
-  Future<void> _removeDay(String providerId, String day) async {
+  Future<void> _removeDay(
+    BuildContext context,
+    WidgetRef ref,
+    String providerId,
+    String day,
+  ) async {
     try {
       await ref
           .read(providerProfileProvider(providerId).notifier)
           .removeNonWorkingDay(providerId, day);
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Día eliminado')));
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al eliminar')));
+        ).showSnackBar(const SnackBar(content: Text('Error al eliminar')));
       }
     }
   }
 
-  Future<void> _showAddVacationDialog(String providerId) async {
+  Future<void> _showAddVacationDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String providerId,
+  ) async {
     final now = DateTime.now();
     final pickedRange = await showDateRangePicker(
       context: context,
@@ -80,41 +89,46 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
       confirmText: 'Agregar',
     );
 
-    if (pickedRange != null && mounted) {
+    if (pickedRange != null) {
       try {
         await ref
             .read(providerProfileProvider(providerId).notifier)
             .addVacationPeriod(providerId, pickedRange.start, pickedRange.end);
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Vacaciones agregadas correctamente')),
           );
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al agregar vacaciones')),
+            const SnackBar(content: Text('Error al agregar vacaciones')),
           );
         }
       }
     }
   }
 
-  Future<void> _removeVacation(String providerId, VacationPeriod period) async {
+  Future<void> _removeVacation(
+    BuildContext context,
+    WidgetRef ref,
+    String providerId,
+    VacationPeriod period,
+  ) async {
     try {
       await ref
           .read(providerProfileProvider(providerId).notifier)
           .removeVacationPeriod(providerId, period);
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Vacaciones eliminadas')));
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al eliminar')));
+        ).showSnackBar(const SnackBar(content: Text('Error al eliminar')));
       }
     }
   }
@@ -163,21 +177,54 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Días no laborables')),
-      body: authState.when(
-        data: (provider) {
-          if (provider == null) {
-            return const Center(child: Text('Sesión no encontrada'));
-          }
+    ref.registerShell(
+      title: 'Días no laborables',
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'addVacation',
+            onPressed: () {
+              final provider = ref.read(authStateProvider).valueOrNull;
+              if (provider != null) {
+                _showAddVacationDialog(context, ref, provider.id);
+              }
+            },
+            icon: const Icon(Icons.flight_takeoff),
+            label: const Text('Vacaciones'),
+            backgroundColor: theme.colorScheme.secondaryContainer,
+            foregroundColor: theme.colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          FloatingActionButton.extended(
+            heroTag: 'addHoliday',
+            onPressed: () {
+              final provider = ref.read(authStateProvider).valueOrNull;
+              if (provider != null) {
+                _showAddDayDialog(context, ref, provider.id);
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Feriado'),
+          ),
+        ],
+      ),
+    );
 
-          final profileAsync = ref.watch(providerProfileProvider(provider.id));
-          return profileAsync.when(
-            data: (profile) {
+    return authState.when(
+      data: (provider) {
+        if (provider == null) {
+          return const Center(child: Text('Sesión no encontrada'));
+        }
+
+        final profileAsync = ref.watch(providerProfileProvider(provider.id));
+        return profileAsync.when(
+          data: (profile) {
               if (profile == null) {
                 return const Center(child: Text('Perfil no encontrado'));
               }
@@ -219,7 +266,7 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                       constraints.maxWidth > 800 ? 800.0 : constraints.maxWidth;
                   final isDesktop = effectiveMaxWidth > 600;
                   final crossAxisCount = isDesktop ? 3 : 2;
-                  final spacing = AppSpacing.md;
+                  const spacing = AppSpacing.md;
 
                   // Calculamos el ancho disponible para cada tarjeta
                   final availableWidth =
@@ -344,6 +391,8 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                                                           ),
                                                           onDeleted:
                                                               () => _removeDay(
+                                                                context,
+                                                                ref,
                                                                 provider.id,
                                                                 day,
                                                               ),
@@ -397,9 +446,9 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                                       gradient: LinearGradient(
                                         colors: [
                                           theme.colorScheme.primaryContainer
-                                              .withOpacity(0.4),
+                                              .withValues(alpha: 0.4),
                                           theme.colorScheme.tertiaryContainer
-                                              .withOpacity(0.4),
+                                              .withValues(alpha: 0.4),
                                         ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
@@ -407,13 +456,13 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
                                         color: theme.colorScheme.primary
-                                            .withOpacity(0.1),
+                                            .withValues(alpha: 0.1),
                                         width: 1,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
                                           color: theme.colorScheme.shadow
-                                              .withOpacity(0.02),
+                                              .withValues(alpha: 0.02),
                                           blurRadius: 8,
                                           offset: const Offset(0, 4),
                                         ),
@@ -431,7 +480,7 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: theme.colorScheme.surface
-                                              .withOpacity(0.8),
+                                              .withValues(alpha: 0.8),
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Text(
@@ -462,7 +511,7 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                                               color: theme
                                                   .colorScheme
                                                   .onTertiaryContainer
-                                                  .withOpacity(0.8),
+                                                  .withValues(alpha: 0.8),
                                             ),
                                             const SizedBox(
                                               width: AppSpacing.xs,
@@ -488,6 +537,8 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
                                         ),
                                         onPressed:
                                             () => _removeVacation(
+                                              context,
+                                              ref,
                                               provider.id,
                                               vacation,
                                             ),
@@ -511,32 +562,6 @@ class _NonWorkingDaysPageState extends ConsumerState<NonWorkingDaysPage> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => const Center(child: Text('Error de sesión')),
-      ),
-      floatingActionButton:
-          authState.value != null
-              ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  FloatingActionButton.extended(
-                    heroTag: 'addVacation',
-                    onPressed:
-                        () => _showAddVacationDialog(authState.value!.id),
-                    icon: const Icon(Icons.flight_takeoff),
-                    label: const Text('Vacaciones'),
-                    backgroundColor: theme.colorScheme.secondaryContainer,
-                    foregroundColor: theme.colorScheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  FloatingActionButton.extended(
-                    heroTag: 'addHoliday',
-                    onPressed: () => _showAddDayDialog(authState.value!.id),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Feriado'),
-                  ),
-                ],
-              )
-              : null,
-    );
+      );
   }
 }

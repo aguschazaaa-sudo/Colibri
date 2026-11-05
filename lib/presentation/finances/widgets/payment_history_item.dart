@@ -55,10 +55,10 @@ class PaymentHistoryItem extends ConsumerWidget {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder:
-                        (context) => DangerConfirmationDialog(
+                        (context) => const DangerConfirmationDialog(
                           title: 'Cancelar Pago',
                           warningText:
-                              'Al cancelar este pago, el monto se deducirá del saldo a favor del paciente. Si el saldo no alcanza, la diferencia volverá a figurar como deuda en turnos pasados.',
+                              'Al cancelar este pago, el monto se deducirá del saldo a favor del paciente. Si el saldo no alcanza, la diferencia volverá a figurar como pendiente de pago en turnos pasados.',
                           confirmationWord: 'cancelar',
                           confirmButtonText: 'Eliminar pago',
                         ),

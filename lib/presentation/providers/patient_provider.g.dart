@@ -6,7 +6,7 @@ part of 'patient_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$patientsHash() => r'49791bd423e9fe37ee3e1e49f4cd90d60d5cb82d';
+String _$patientsHash() => r'bdd6ebafd8725b9635b2dd4e0d04bec47bc47bb5';
 
 /// Copied from Dart SDK
 class _SystemHash {

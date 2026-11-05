@@ -1,140 +1,170 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { MONTHLY_INTEREST_RATE, calculateInterest } from "../utils/dateAndInterest";
-import { incrementDashboardMetrics, resetMonthlyRevenue } from "../utils/metrics_utils";
+import { incrementDashboardMetrics, resetMonthlyRevenue, saveMonthlySnapshot } from "../utils/metrics_utils";
+import { BatchWriter } from "../utils/batch_utils";
 
 const db = admin.firestore();
 
 /**
- * Cron Job that runs on the 28th of every month at 15:00.
- * 1. Finds unpaid appointments older than 1 month.
- * 2. Applies monthly interest to the remaining amount.
+ * Cron Job that runs on the 1st of every month at 15:00.
+ * 1. Finds overdue unpaid appointments.
+ * 2. Applies monthly interest to appointments older than 1 month.
  * 3. Updates Patient's totalDebt.
- * 4. Triggers WhatsApp reminder logic.
+ *
+ * WhatsApp payment reminders are handled separately by monthlyDebtNotifier
+ * (runs at 16:00, 1 hour after this job).
  */
 export const monthlyDebtProcessor = functions
   .runWith({ maxInstances: 10 })
-  .pubsub.schedule("0 15 28 * *")
+  .pubsub.schedule("0 15 1 * *")
   .timeZone("America/Argentina/Buenos_Aires")
-  .onRun(async (context) => {
-    console.log("Started monthlyDebtProcessor");
+  .onRun(async () => {
+    functions.logger.info("[monthlyDebtProcessor] Started");
 
+    const now = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    // Use collectionGroup("patients") to find all patients across all providers
-    // that currently have debt, without needing to scan each provider individually.
-    const patientsWithDebtSnapshot = await db.collectionGroup("patients")
-      .where("totalDebt", ">", 0)
-      .get();
-      
-    if (patientsWithDebtSnapshot.empty) {
-        console.log("No patients with debt found.");
-        return null;
+    const [basicSnap, premiumSnap, trialSnap] = await Promise.all([
+      db
+        .collection("providers")
+        .where("subscriptionStatus", "==", "active")
+        .where("plan", "==", "basic")
+        .get(),
+      db
+        .collection("providers")
+        .where("subscriptionStatus", "==", "active")
+        .where("plan", "==", "premium")
+        .get(),
+      db
+        .collection("providers")
+        .where("subscriptionStatus", "==", "active")
+        .where("plan", "==", "trial")
+        .get(),
+    ]);
+
+    const allProviderDocs = [
+      ...basicSnap.docs,
+      ...premiumSnap.docs,
+      ...trialSnap.docs,
+    ];
+
+    if (allProviderDocs.length === 0) {
+      functions.logger.info("[monthlyDebtProcessor] No active providers found.");
+      return null;
     }
 
-    console.log(`Processing debt for ${patientsWithDebtSnapshot.size} patients`);
+    const activeProviderIds = new Set<string>(
+      allProviderDocs.map((d) => d.id)
+    );
 
-    const batch = db.batch();
-    let updatesCount = 0;
+    const nowTs = admin.firestore.Timestamp.fromDate(now);
+    const unpaidSnapshot = await db
+      .collectionGroup("appointments")
+      .where("status", "==", "unpaid")
+      .where("date", "<=", nowTs)
+      .get();
+
+    const batchWriter = new BatchWriter();
 
     // Track interest added per provider: { providerId -> totalInterest }
     const providerInterestMap = new Map<string, number>();
 
-    for (const patientDoc of patientsWithDebtSnapshot.docs) {
-      const patientId = patientDoc.id;
-      const patientData = patientDoc.data();
-      const providerId = patientData.providerId;
+    type PatientAgg = {
+      patientRef: FirebaseFirestore.DocumentReference;
+      patientId: string;
+      providerId: string;
+      overdueDebt: number;
+      interestAdded: number;
+    };
 
-      // Use patientDoc.ref to build the subcollection path — it already contains
-      // the correct path: providers/{providerId}/patients/{patientId}
-      const unpaidAppointmentsSnapshot = await patientDoc.ref
-        .collection("appointments")
-        .where("status", "==", "unpaid")
-        .get();
+    const patientAggMap = new Map<string, PatientAgg>();
 
-      let totalInterestAddedToPatient = 0;
+    for (const appDoc of unpaidSnapshot.docs) {
+      const appData = appDoc.data();
+      const providerId = appData.providerId as string | undefined;
+      if (!providerId || !activeProviderIds.has(providerId)) {
+        continue;
+      }
 
-      for (const appDoc of unpaidAppointmentsSnapshot.docs) {
-        const appData = appDoc.data();
-        const appDate: admin.firestore.Timestamp = appData.date;
+      const appDate: admin.firestore.Timestamp | undefined = appData.date;
+      if (!appDate?.toDate) continue;
+      const appDateValue = appDate.toDate();
+      if (appDateValue > now) continue;
 
-        // Check if appointment is older than 1 month
-        if (appDate.toDate() < oneMonthAgo) {
-          const pendingAmount = appData.totalAmount - (appData.amountPaid || 0);
-          
-          if (pendingAmount > 0) {
-            // Apply compound interest
-            const interestAmount = calculateInterest(pendingAmount, MONTHLY_INTEREST_RATE);
-            const newTotalAmount = appData.totalAmount + interestAmount;
+      const totalAmount: number = appData.totalAmount || 0;
+      const amountPaid: number = appData.amountPaid || 0;
+      const pendingAmount = totalAmount - amountPaid;
+      if (pendingAmount <= 0) continue;
 
-            batch.update(appDoc.ref, {
-              totalAmount: newTotalAmount,
-            });
+      const patientRef = appDoc.ref.parent.parent;
+      if (!patientRef) continue;
 
-            totalInterestAddedToPatient += interestAmount;
-            updatesCount++;
-          }
+      const key = patientRef.path;
+      const existing =
+        patientAggMap.get(key) ??
+        ({
+          patientRef,
+          patientId: patientRef.id,
+          providerId,
+          overdueDebt: 0,
+          interestAdded: 0,
+        } as PatientAgg);
+
+      existing.overdueDebt += pendingAmount;
+
+      if (appDateValue < oneMonthAgo) {
+        const interestAmount = calculateInterest(
+          pendingAmount,
+          MONTHLY_INTEREST_RATE
+        );
+        if (interestAmount > 0) {
+          const newTotalAmount = totalAmount + interestAmount;
+          await batchWriter.update(appDoc.ref, {
+            totalAmount: newTotalAmount,
+            _functionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          existing.interestAdded += interestAmount;
+          existing.overdueDebt += interestAmount;
+
+          const prev = providerInterestMap.get(providerId) ?? 0;
+          providerInterestMap.set(providerId, prev + interestAmount);
         }
       }
 
-      // Update patient's total debt if interest was added
-      if (totalInterestAddedToPatient > 0) {
-        const newTotalDebt = patientData.totalDebt + totalInterestAddedToPatient;
-        batch.update(patientDoc.ref, {
-          totalDebt: newTotalDebt,
+      patientAggMap.set(key, existing);
+    }
+
+    for (const agg of patientAggMap.values()) {
+      if (agg.interestAdded > 0) {
+        await batchWriter.update(agg.patientRef, {
+          totalDebt: admin.firestore.FieldValue.increment(agg.interestAdded),
         });
-        updatesCount++;
-        // Accumulate interest per provider for dashboard update
-        const prev = providerInterestMap.get(providerId) ?? 0;
-        providerInterestMap.set(providerId, prev + totalInterestAddedToPatient);
       }
-
-      // Queue WhatsApp Reminder
-      const finalDebtForMessage = patientData.totalDebt + totalInterestAddedToPatient;
-      queueWhatsAppReminder(providerId, patientId, finalDebtForMessage, patientData.name);
     }
 
-    // Commit all updates
-    if (updatesCount > 0) {
-      console.log(`Committing ${updatesCount} updates (Interests added)`);
-      // Warning: Firestore batches have a limit of 500 operations.
-      // For large scale, we should commit every 500 ops.
-      await batch.commit();
+    await batchWriter.flush();
+
+    // For each active provider: save a monthly snapshot, reset monthlyRevenue
+    // (new cycle) and — if there was interest — increment totalToCollect.
+    // Iterating over ALL active providers (not just providerInterestMap) ensures
+    // monthlyRevenue is always reset and a snapshot is always captured, even
+    // for providers whose patients had no overdue debt this cycle.
+    for (const doc of allProviderDocs) {
+      const pid = doc.id;
+      await saveMonthlySnapshot(pid);
+      await resetMonthlyRevenue(pid);
+      const interest = providerInterestMap.get(pid) ?? 0;
+      if (interest > 0) {
+        await incrementDashboardMetrics(pid, { totalToCollect: interest });
+      }
     }
+    functions.logger.info("[monthlyDebtProcessor] Updated dashboard", {
+      providers: allProviderDocs.length,
+    });
 
-    // For each provider: reset monthlyRevenue (new cycle) AND increment
-    // totalToCollect by the interest their patients just accrued.
-    const dashboardPromises = Array.from(providerInterestMap.entries()).map(
-      ([pid, interestAdded]) =>
-        Promise.all([
-          resetMonthlyRevenue(pid),
-          incrementDashboardMetrics(pid, { totalToCollect: interestAdded }),
-        ])
-    );
-    await Promise.all(dashboardPromises);
-    console.log(`[monthlyDebtProcessor] Updated dashboard for ${providerInterestMap.size} provider(s).`);
-
-    console.log("Finished monthlyDebtProcessor");
+    functions.logger.info("[monthlyDebtProcessor] Finished");
     return null;
-});
-
-/**
- * Skeleton function to handle WhatsApp reminder queues
- */
-async function queueWhatsAppReminder(providerId: string, patientId: string, totalDebt: number, patientName: string) {
-    console.log(`[WhatsApp Engine] Enqueuing reminder for Patient ${patientName} (${patientId}). Debt: $${totalDebt}`);
-    
-    await db
-        .collection("providers")
-        .doc(providerId)
-        .collection("communications")
-        .add({
-            patientId: patientId,
-            patientName: patientName,
-            type: "whatsapp_reminder",
-            status: "pending",
-            totalDebtAtThatTime: totalDebt,
-            sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-}
+  });

@@ -1,6 +1,11 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { shouldGenerateToday, toDateKey } from "../utils/dateAndInterest";
+import {
+  ProviderScheduleData,
+  isNonWorkingDay,
+  resolveSessionDuration,
+} from "../utils/recurring_utils";
 
 const getDb = () => admin.firestore();
 
@@ -14,7 +19,7 @@ export const onCreateRecurringAppointment = functions
     if (!data || !data.active) return;
 
     const { providerId, patientId, recurringId } = context.params;
-    const { concept, defaultAmount, frequency } = data;
+    const { concept, defaultAmount, frequency, defaultSessionDurationMinutes: recurringDurationMinutes } = data;
     
     const baseDate: Date = data.baseDate?.toDate?.() ?? new Date(data.baseDate);
     const endDate: Date | null = data.endDate?.toDate?.() ?? null;
@@ -30,15 +35,24 @@ export const onCreateRecurringAppointment = functions
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const targetDates = [today, tomorrow];
+    // Also cover today+2: the cron generates 2 days ahead at 06:00 AM,
+    // so if this trigger fires after the cron ran, today+2 would be missed
+    // without this third target date.
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+    const targetDates = [today, tomorrow, dayAfterTomorrow];
     let generatedCount = 0;
 
     // Fetch provider settings once
     const db = getDb();
     const providerSnap = await db.collection("providers").doc(providerId).get();
     const pData = providerSnap.data();
-    const nonWorkingDays: string[] = pData?.nonWorkingDays ?? [];
-    const vacations: any[] = pData?.vacations ?? [];
+    const providerSchedule: ProviderScheduleData = {
+      nonWorkingDays: pData?.nonWorkingDays ?? [],
+      vacations: pData?.vacations ?? [],
+      defaultSessionDurationMinutes: pData?.defaultSessionDurationMinutes ?? null,
+    };
 
     for (const targetDate of targetDates) {
       if (endDate && targetDate > endDate) continue;
@@ -56,40 +70,7 @@ export const onCreateRecurringAppointment = functions
         baseDate.getMilliseconds()
       );
 
-      // To check holidays correctly, we must align the date to Buenos Aires time (UTC-3).
-      // Otherwise, an appointment at 23:00 BA time is 02:00 UTC the next day, which would miss the holiday check!
-      const baDateCheck = new Date(finalDate.getTime() - (3 * 60 * 60 * 1000));
-      const targetMMDD_BA = `${String(baDateCheck.getUTCMonth() + 1).padStart(2, "0")}-${String(baDateCheck.getUTCDate()).padStart(2, "0")}`;
-      
-      let isSkipped = false;
-      let skipReason = "";
-
-      if (nonWorkingDays.includes(targetMMDD_BA)) {
-        isSkipped = true;
-        skipReason = `holiday ${targetMMDD_BA}`;
-      } else {
-        // Check vacations (also using BA timezone alignment)
-        for (const v of vacations) {
-          const start = v.startDate?.toDate?.() ?? new Date(v.startDate);
-          const end = v.endDate?.toDate?.() ?? new Date(v.endDate);
-          
-          // Move start/end to UTC-3 midnight to compare with baDateCheck
-          const startBA = new Date(start.getTime() - (3 * 60 * 60 * 1000));
-          const endBA = new Date(end.getTime() - (3 * 60 * 60 * 1000));
-          
-          startBA.setUTCHours(0, 0, 0, 0);
-          endBA.setUTCHours(23, 59, 59, 999);
-          
-          const baDateCheckMidnight = new Date(baDateCheck);
-          baDateCheckMidnight.setUTCHours(0,0,0,0);
-          
-          if (baDateCheckMidnight >= startBA && baDateCheckMidnight <= endBA) {
-            isSkipped = true;
-            skipReason = `vacation period`;
-            break;
-          }
-        }
-      }
+      const { skipped: isSkipped, reason: skipReason } = isNonWorkingDay(finalDate, providerSchedule);
 
       if (isSkipped) {
         console.log(`[onCreateRecurringAppointment] Skipping eager generation for ${recurringId} on ${toDateKey(targetDate)} because of ${skipReason}.`);
@@ -104,7 +85,16 @@ export const onCreateRecurringAppointment = functions
       // We still use targetDateKey as deduplication key, which is fine as it's internally consistent
       const patientRef = snap.ref.parent.parent!;
       const targetDateKey = toDateKey(targetDate);
-      
+
+      // Resolve session duration: recurring doc → provider default → fallback 45 min
+      const sessionDurationMinutes = resolveSessionDuration(
+        recurringDurationMinutes,
+        providerSchedule.defaultSessionDurationMinutes,
+      );
+      const endTime = new Date(
+        finalDate.getTime() + sessionDurationMinutes * 60 * 1000,
+      );
+
       const appointmentRef = patientRef.collection("appointments").doc();
 
       await appointmentRef.set({
@@ -113,6 +103,7 @@ export const onCreateRecurringAppointment = functions
         recurringAppointmentId: recurringId,
         concept,
         date: admin.firestore.Timestamp.fromDate(finalDate),
+        endTime: admin.firestore.Timestamp.fromDate(endTime),
         dateKey: targetDateKey,
         totalAmount: defaultAmount,
         amountPaid: 0,

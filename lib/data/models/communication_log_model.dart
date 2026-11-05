@@ -1,6 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cobrador/domain/communication_log.dart';
 
+double _parseDebt(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) {
+    final cleaned = value.replaceAll(RegExp(r'[^0-9.,]'), '');
+    final normalized = cleaned.replaceAll('.', '').replaceAll(',', '.');
+    return double.tryParse(normalized) ?? 0;
+  }
+  return 0;
+}
+
 class CommunicationLogModel {
   final String id;
   final String patientId;
@@ -10,6 +20,8 @@ class CommunicationLogModel {
   final String status;
   final double totalDebtAtThatTime;
   final String? patientName;
+  final String? messageType;
+  final Map<String, String>? variables;
 
   const CommunicationLogModel({
     required this.id,
@@ -20,6 +32,8 @@ class CommunicationLogModel {
     required this.status,
     required this.totalDebtAtThatTime,
     this.patientName,
+    this.messageType,
+    this.variables,
   });
 
   factory CommunicationLogModel.fromEntity(CommunicationLog entity) {
@@ -32,6 +46,8 @@ class CommunicationLogModel {
       status: entity.status,
       totalDebtAtThatTime: entity.totalDebtAtThatTime,
       patientName: entity.patientName,
+      messageType: entity.messageType,
+      variables: entity.variables,
     );
   }
 
@@ -43,8 +59,11 @@ class CommunicationLogModel {
       messageId: (json['messageId'] as String?) ?? '',
       sentAt: (json['sentAt'] as Timestamp).toDate(),
       status: json['status'] as String,
-      totalDebtAtThatTime: (json['totalDebtAtThatTime'] as num).toDouble(),
+      totalDebtAtThatTime: _parseDebt(json['totalDebtAtThatTime']),
       patientName: json['patientName'] as String?,
+      messageType: json['messageType'] as String?,
+      variables: (json['variables'] as Map<String, dynamic>?)
+          ?.map((k, v) => MapEntry(k, v.toString())),
     );
   }
 
@@ -70,6 +89,8 @@ class CommunicationLogModel {
       status: status,
       totalDebtAtThatTime: totalDebtAtThatTime,
       patientName: patientName,
+      messageType: messageType,
+      variables: variables,
     );
   }
 }

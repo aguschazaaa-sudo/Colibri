@@ -70,7 +70,7 @@ class DashboardMetrics extends ConsumerWidget {
                   icon: Icons.check_circle_outline,
                   color: Theme.of(context).colorScheme.primary,
                   isAlert: false,
-                  subtitle: 'Se resetea el 28\nde cada mes',
+                  subtitle: 'Se resetea el 1\nde cada mes',
                 )
                 .animate(delay: 100.ms)
                 .fadeIn(duration: 400.ms, curve: Curves.easeOut)

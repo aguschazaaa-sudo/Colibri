@@ -1,6 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { incrementDashboardMetrics } from "../utils/metrics_utils";
+import { applyDashboardDeltaInTx } from "../utils/metrics_utils";
 import { distributePaymentFIFO } from "../utils/payment_distribution";
 
 const db = admin.firestore();
@@ -16,6 +16,9 @@ const db = admin.firestore();
  *      or to a specific appointment if `appointmentId` is set).
  *   2. Decreases the patient's totalDebt by the amount applied to appointments.
  *   3. Increases the patient's balance if there's leftover money after all debts.
+ *   4. Updates the dashboard inside the same transaction (atomic, retry-safe):
+ *      `totalToCollect += newTotalDebt - currentTotalDebt` (post-clamp) and
+ *      `monthlyRevenue += amount`.
  */
 export const onPaymentCreated = functions
   .runWith({ maxInstances: 10 })
@@ -46,7 +49,9 @@ export const onPaymentCreated = functions
       .doc(patientId);
 
     try {
-      const txResult = await db.runTransaction(async (transaction) => {
+      await db.runTransaction(async (transaction) => {
+        // NOTE: no state may leak out of this closure — Firestore re-runs it
+        // on contention, so every value is recomputed per attempt.
         // 1. Read patient + unpaid appointments (all reads before writes)
         const appointmentsQuery = patientRef
           .collection("appointments")
@@ -85,24 +90,15 @@ export const onPaymentCreated = functions
           balance: newBalance,
         });
 
-        console.log(
-          `[onPaymentCreated] Payment ${paymentId} processed. ` +
-          `Applied: $${totalDebtDecrease}. To balance: $${moneyLeftForBalance}. ` +
-          `totalDebt: ${currentTotalDebt} → ${newTotalDebt}. ` +
-          `balance: ${currentBalance} → ${newBalance}`
-        );
-
-        // Return values needed for dashboard update outside the transaction
-        return { totalDebtDecrease, totalPaymentAmount: paymentAmount };
-      });
-
-      // Update the pre-calculated dashboard metrics (best-effort, outside transaction)
-      if (txResult) {
-        await incrementDashboardMetrics(providerId, {
-          totalToCollect: -txResult.totalDebtDecrease, // reduce debt owed
-          monthlyRevenue: txResult.totalPaymentAmount,  // add to monthly earnings
+        // 4. Dashboard: exact (post-clamp) totalDebt change + revenue,
+        //    committed atomically with the patient write.
+        applyDashboardDeltaInTx(transaction, providerId, {
+          totalToCollect: newTotalDebt - currentTotalDebt,
+          monthlyRevenue: paymentAmount,
         });
-      }
+
+        functions.logger.info("[onPaymentCreated] ledger updated", { paymentId });
+      });
     } catch (error) {
       console.error(`[onPaymentCreated] Transaction failed for payment ${paymentId}:`, error);
       throw error; // Re-throw to trigger retry

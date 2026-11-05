@@ -69,7 +69,7 @@ class PatientLoadingSkeleton extends StatelessWidget {
           child: ListTile(
             leading: CircleAvatar(child: Text('C')),
             title: Text('Cargando paciente'),
-            subtitle: Text('Deuda: \$ 0'),
+            subtitle: Text('Pendiente: \$ 0'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

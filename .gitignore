@@ -64,6 +64,7 @@ firebase-export-*
 *.cert
 *.jks
 *.keystore
+.mcp.json
 
 # Google Cloud / Firebase Configs
 **/google-services.json
@@ -74,3 +75,8 @@ lib/firebase_options.dart
 
 # Firebase Functions build artifacts
 firebase/functions/lib/
+
+# OpenSpec — archivos con datos sensibles o personales (nunca commitear)
+openspec/**/datos.md
+openspec/**/*.secrets.md
+openspec/**/*.local.md

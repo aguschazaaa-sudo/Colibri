@@ -24,7 +24,7 @@ export const createSubscription = functions
       );
     }
 
-    const { planId } = data; // 'basic' or 'premium'
+    const { planId, payerEmail } = data; // 'basic' or 'premium'
     if (planId !== "basic" && planId !== "premium") {
       throw new functions.https.HttpsError(
         "invalid-argument",
@@ -50,18 +50,36 @@ export const createSubscription = functions
         : pricingData?.premium?.priceArs || 20000;
 
       // 2. Get User Discount
-      const userDoc = await db.collection("providers").doc(uid).get();
-      if (!userDoc.exists) {
-        throw new functions.https.HttpsError(
-          "not-found",
-          "User profile not found."
-        );
-      }
-      const userData = userDoc.data();
-      const discountPercentage = userData?.discountPercentage || 0.0;
+    const userDoc = await db.collection("providers").doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "User profile not found."
+      );
+    }
+    const userData = userDoc.data();
+    const discountPercentage = userData?.discountPercentage || 0.0;
+    const existingPreapprovalId = userData?.mpPreapprovalId;
+    const existingStatus = userData?.subscriptionStatus;
+    const existingExpiresAt = userData?.subscriptionExpiresAt?.toDate?.();
+    const isExpired = existingExpiresAt
+      ? existingExpiresAt.getTime() <= Date.now()
+      : true;
+    if (existingPreapprovalId && existingStatus !== "suspended" && !isExpired) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "User already has an active or pending subscription."
+      );
+    }
       
       // Calculate final price (e.g. 10000 * (1 - 0.20) = 8000)
       const finalPrice = Math.round(basePriceArs * (1 - discountPercentage));
+
+      // Use MP email from client if provided and valid, otherwise fall back to Auth email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailToUse = payerEmail && typeof payerEmail === "string" && emailRegex.test(payerEmail.trim())
+        ? payerEmail.trim()
+        : userEmail;
 
       // 3. Init Mercado Pago
       const client = new MercadoPagoConfig({
@@ -72,15 +90,15 @@ export const createSubscription = functions
       // 4. Create Preapproval
       const response = await preapproval.create({
         body: {
+          payer_email: emailToUse,
           back_url: "https://colibrimd.com.ar",
-          reason: `plan:${planId}`, // Used by webhook to identify the plan
+          reason: planId === "premium" ? "Plan Premium - ColibriMD" : "Plan Básico - ColibriMD",
           auto_recurring: {
             frequency: 1,
             frequency_type: "months",
             transaction_amount: finalPrice,
             currency_id: "ARS",
           },
-          payer_email: userEmail,
           external_reference: uid,
           status: "pending",
         },
@@ -92,18 +110,18 @@ export const createSubscription = functions
       };
 
     } catch (error: any) {
+      // Log full error detail so we can debug MP rejections
+      const mpDetail = error.cause
+        ?? error.response?.data
+        ?? error.message;
       functions.logger.error("Error creating Mercado Pago subscription", {
+        mpDetail: JSON.stringify(mpDetail),
+        status: error.status ?? error.response?.status,
         message: error.message,
-        response: error.response?.data,
-        cause: error.cause,
-        stack: error.stack,
       });
-      // We stringify the detailed error so it bubbles up exactly what failed
-      const details = error.cause ? JSON.stringify(error.cause) : error.message;
       throw new functions.https.HttpsError(
         "internal",
-        "Failed to create subscription link.",
-        details
+        "Failed to create subscription link."
       );
     }
   });

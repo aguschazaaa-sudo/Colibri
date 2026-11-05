@@ -134,27 +134,32 @@ class _CreatePaymentSheetState extends ConsumerState<CreatePaymentSheet> {
                               (v) =>
                                   v == null ? 'Seleccione un paciente' : null,
                           builder: (state) {
-                            return DropdownMenu<String>(
-                              initialSelection: _selectedPatientId,
-                              expandedInsets: EdgeInsets.zero,
-                              label: const Text('Paciente'),
-                              leadingIcon: const Icon(
-                                Icons.person_outline_rounded,
-                              ),
-                              enableFilter: true,
-                              enableSearch: true,
-                              errorText: state.errorText,
-                              dropdownMenuEntries:
-                                  patients.map((p) {
-                                    return DropdownMenuEntry(
-                                      value: p.id,
-                                      label:
-                                          '${p.name} (Deuda: \$${p.totalDebt.toStringAsFixed(0)})',
-                                    );
-                                  }).toList(),
-                              onSelected: (v) {
-                                setState(() => _selectedPatientId = v);
-                                state.didChange(v);
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                return DropdownMenu<String>(
+                                  initialSelection: _selectedPatientId,
+                                  width: constraints.maxWidth,
+                                  menuHeight: 240,
+                                  label: const Text('Paciente'),
+                                  leadingIcon: const Icon(
+                                    Icons.person_outline_rounded,
+                                  ),
+                                  enableFilter: true,
+                                  enableSearch: true,
+                                  errorText: state.errorText,
+                                  dropdownMenuEntries:
+                                      patients.map((p) {
+                                        return DropdownMenuEntry(
+                                          value: p.id,
+                                          label:
+                                              '${p.name} (Pendiente: \$${p.totalDebt.toStringAsFixed(0)})',
+                                        );
+                                      }).toList(),
+                                  onSelected: (v) {
+                                    setState(() => _selectedPatientId = v);
+                                    state.didChange(v);
+                                  },
+                                );
                               },
                             );
                           },

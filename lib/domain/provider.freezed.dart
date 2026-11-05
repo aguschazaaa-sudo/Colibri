@@ -24,11 +24,14 @@ mixin _$Provider {
       throw _privateConstructorUsedError;
   SubscriptionPlan get plan => throw _privateConstructorUsedError;
   DateTime? get subscriptionExpiresAt => throw _privateConstructorUsedError;
+  String? get mpPreapprovalId => throw _privateConstructorUsedError;
   double get defaultMonthlyInterestRate => throw _privateConstructorUsedError;
   double get discountPercentage => throw _privateConstructorUsedError;
   String? get whatsappTemplate => throw _privateConstructorUsedError;
+  String? get profession => throw _privateConstructorUsedError;
   List<String> get nonWorkingDays => throw _privateConstructorUsedError;
   List<VacationPeriod> get vacations => throw _privateConstructorUsedError;
+  int get defaultSessionDurationMinutes => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Create a copy of Provider
@@ -50,11 +53,14 @@ abstract class $ProviderCopyWith<$Res> {
     SubscriptionStatus subscriptionStatus,
     SubscriptionPlan plan,
     DateTime? subscriptionExpiresAt,
+    String? mpPreapprovalId,
     double defaultMonthlyInterestRate,
     double discountPercentage,
     String? whatsappTemplate,
+    String? profession,
     List<String> nonWorkingDays,
     List<VacationPeriod> vacations,
+    int defaultSessionDurationMinutes,
     DateTime createdAt,
   });
 }
@@ -80,11 +86,14 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
     Object? subscriptionStatus = null,
     Object? plan = null,
     Object? subscriptionExpiresAt = freezed,
+    Object? mpPreapprovalId = freezed,
     Object? defaultMonthlyInterestRate = null,
     Object? discountPercentage = null,
     Object? whatsappTemplate = freezed,
+    Object? profession = freezed,
     Object? nonWorkingDays = null,
     Object? vacations = null,
+    Object? defaultSessionDurationMinutes = null,
     Object? createdAt = null,
   }) {
     return _then(
@@ -119,6 +128,11 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
                     ? _value.subscriptionExpiresAt
                     : subscriptionExpiresAt // ignore: cast_nullable_to_non_nullable
                         as DateTime?,
+            mpPreapprovalId:
+                freezed == mpPreapprovalId
+                    ? _value.mpPreapprovalId
+                    : mpPreapprovalId // ignore: cast_nullable_to_non_nullable
+                        as String?,
             defaultMonthlyInterestRate:
                 null == defaultMonthlyInterestRate
                     ? _value.defaultMonthlyInterestRate
@@ -134,6 +148,11 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
                     ? _value.whatsappTemplate
                     : whatsappTemplate // ignore: cast_nullable_to_non_nullable
                         as String?,
+            profession:
+                freezed == profession
+                    ? _value.profession
+                    : profession // ignore: cast_nullable_to_non_nullable
+                        as String?,
             nonWorkingDays:
                 null == nonWorkingDays
                     ? _value.nonWorkingDays
@@ -144,6 +163,11 @@ class _$ProviderCopyWithImpl<$Res, $Val extends Provider>
                     ? _value.vacations
                     : vacations // ignore: cast_nullable_to_non_nullable
                         as List<VacationPeriod>,
+            defaultSessionDurationMinutes:
+                null == defaultSessionDurationMinutes
+                    ? _value.defaultSessionDurationMinutes
+                    : defaultSessionDurationMinutes // ignore: cast_nullable_to_non_nullable
+                        as int,
             createdAt:
                 null == createdAt
                     ? _value.createdAt
@@ -171,11 +195,14 @@ abstract class _$$ProviderImplCopyWith<$Res>
     SubscriptionStatus subscriptionStatus,
     SubscriptionPlan plan,
     DateTime? subscriptionExpiresAt,
+    String? mpPreapprovalId,
     double defaultMonthlyInterestRate,
     double discountPercentage,
     String? whatsappTemplate,
+    String? profession,
     List<String> nonWorkingDays,
     List<VacationPeriod> vacations,
+    int defaultSessionDurationMinutes,
     DateTime createdAt,
   });
 }
@@ -200,11 +227,14 @@ class __$$ProviderImplCopyWithImpl<$Res>
     Object? subscriptionStatus = null,
     Object? plan = null,
     Object? subscriptionExpiresAt = freezed,
+    Object? mpPreapprovalId = freezed,
     Object? defaultMonthlyInterestRate = null,
     Object? discountPercentage = null,
     Object? whatsappTemplate = freezed,
+    Object? profession = freezed,
     Object? nonWorkingDays = null,
     Object? vacations = null,
+    Object? defaultSessionDurationMinutes = null,
     Object? createdAt = null,
   }) {
     return _then(
@@ -239,6 +269,11 @@ class __$$ProviderImplCopyWithImpl<$Res>
                 ? _value.subscriptionExpiresAt
                 : subscriptionExpiresAt // ignore: cast_nullable_to_non_nullable
                     as DateTime?,
+        mpPreapprovalId:
+            freezed == mpPreapprovalId
+                ? _value.mpPreapprovalId
+                : mpPreapprovalId // ignore: cast_nullable_to_non_nullable
+                    as String?,
         defaultMonthlyInterestRate:
             null == defaultMonthlyInterestRate
                 ? _value.defaultMonthlyInterestRate
@@ -254,6 +289,11 @@ class __$$ProviderImplCopyWithImpl<$Res>
                 ? _value.whatsappTemplate
                 : whatsappTemplate // ignore: cast_nullable_to_non_nullable
                     as String?,
+        profession:
+            freezed == profession
+                ? _value.profession
+                : profession // ignore: cast_nullable_to_non_nullable
+                    as String?,
         nonWorkingDays:
             null == nonWorkingDays
                 ? _value._nonWorkingDays
@@ -264,6 +304,11 @@ class __$$ProviderImplCopyWithImpl<$Res>
                 ? _value._vacations
                 : vacations // ignore: cast_nullable_to_non_nullable
                     as List<VacationPeriod>,
+        defaultSessionDurationMinutes:
+            null == defaultSessionDurationMinutes
+                ? _value.defaultSessionDurationMinutes
+                : defaultSessionDurationMinutes // ignore: cast_nullable_to_non_nullable
+                    as int,
         createdAt:
             null == createdAt
                 ? _value.createdAt
@@ -284,11 +329,14 @@ class _$ProviderImpl extends _Provider {
     required this.subscriptionStatus,
     this.plan = SubscriptionPlan.none,
     this.subscriptionExpiresAt,
+    this.mpPreapprovalId,
     this.defaultMonthlyInterestRate = 0.0,
     this.discountPercentage = 0.0,
     this.whatsappTemplate,
+    this.profession,
     final List<String> nonWorkingDays = const <String>[],
     final List<VacationPeriod> vacations = const <VacationPeriod>[],
+    this.defaultSessionDurationMinutes = 45,
     required this.createdAt,
   }) : _nonWorkingDays = nonWorkingDays,
        _vacations = vacations,
@@ -308,6 +356,8 @@ class _$ProviderImpl extends _Provider {
   @override
   final DateTime? subscriptionExpiresAt;
   @override
+  final String? mpPreapprovalId;
+  @override
   @JsonKey()
   final double defaultMonthlyInterestRate;
   @override
@@ -315,6 +365,8 @@ class _$ProviderImpl extends _Provider {
   final double discountPercentage;
   @override
   final String? whatsappTemplate;
+  @override
+  final String? profession;
   final List<String> _nonWorkingDays;
   @override
   @JsonKey()
@@ -334,11 +386,14 @@ class _$ProviderImpl extends _Provider {
   }
 
   @override
+  @JsonKey()
+  final int defaultSessionDurationMinutes;
+  @override
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Provider(id: $id, email: $email, name: $name, subscriptionStatus: $subscriptionStatus, plan: $plan, subscriptionExpiresAt: $subscriptionExpiresAt, defaultMonthlyInterestRate: $defaultMonthlyInterestRate, discountPercentage: $discountPercentage, whatsappTemplate: $whatsappTemplate, nonWorkingDays: $nonWorkingDays, vacations: $vacations, createdAt: $createdAt)';
+    return 'Provider(id: $id, email: $email, name: $name, subscriptionStatus: $subscriptionStatus, plan: $plan, subscriptionExpiresAt: $subscriptionExpiresAt, mpPreapprovalId: $mpPreapprovalId, defaultMonthlyInterestRate: $defaultMonthlyInterestRate, discountPercentage: $discountPercentage, whatsappTemplate: $whatsappTemplate, profession: $profession, nonWorkingDays: $nonWorkingDays, vacations: $vacations, defaultSessionDurationMinutes: $defaultSessionDurationMinutes, createdAt: $createdAt)';
   }
 
   @override
@@ -354,6 +409,8 @@ class _$ProviderImpl extends _Provider {
             (identical(other.plan, plan) || other.plan == plan) &&
             (identical(other.subscriptionExpiresAt, subscriptionExpiresAt) ||
                 other.subscriptionExpiresAt == subscriptionExpiresAt) &&
+            (identical(other.mpPreapprovalId, mpPreapprovalId) ||
+                other.mpPreapprovalId == mpPreapprovalId) &&
             (identical(
                   other.defaultMonthlyInterestRate,
                   defaultMonthlyInterestRate,
@@ -364,6 +421,8 @@ class _$ProviderImpl extends _Provider {
                 other.discountPercentage == discountPercentage) &&
             (identical(other.whatsappTemplate, whatsappTemplate) ||
                 other.whatsappTemplate == whatsappTemplate) &&
+            (identical(other.profession, profession) ||
+                other.profession == profession) &&
             const DeepCollectionEquality().equals(
               other._nonWorkingDays,
               _nonWorkingDays,
@@ -372,6 +431,12 @@ class _$ProviderImpl extends _Provider {
               other._vacations,
               _vacations,
             ) &&
+            (identical(
+                  other.defaultSessionDurationMinutes,
+                  defaultSessionDurationMinutes,
+                ) ||
+                other.defaultSessionDurationMinutes ==
+                    defaultSessionDurationMinutes) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -385,11 +450,14 @@ class _$ProviderImpl extends _Provider {
     subscriptionStatus,
     plan,
     subscriptionExpiresAt,
+    mpPreapprovalId,
     defaultMonthlyInterestRate,
     discountPercentage,
     whatsappTemplate,
+    profession,
     const DeepCollectionEquality().hash(_nonWorkingDays),
     const DeepCollectionEquality().hash(_vacations),
+    defaultSessionDurationMinutes,
     createdAt,
   );
 
@@ -410,11 +478,14 @@ abstract class _Provider extends Provider {
     required final SubscriptionStatus subscriptionStatus,
     final SubscriptionPlan plan,
     final DateTime? subscriptionExpiresAt,
+    final String? mpPreapprovalId,
     final double defaultMonthlyInterestRate,
     final double discountPercentage,
     final String? whatsappTemplate,
+    final String? profession,
     final List<String> nonWorkingDays,
     final List<VacationPeriod> vacations,
+    final int defaultSessionDurationMinutes,
     required final DateTime createdAt,
   }) = _$ProviderImpl;
   const _Provider._() : super._();
@@ -432,15 +503,21 @@ abstract class _Provider extends Provider {
   @override
   DateTime? get subscriptionExpiresAt;
   @override
+  String? get mpPreapprovalId;
+  @override
   double get defaultMonthlyInterestRate;
   @override
   double get discountPercentage;
   @override
   String? get whatsappTemplate;
   @override
+  String? get profession;
+  @override
   List<String> get nonWorkingDays;
   @override
   List<VacationPeriod> get vacations;
+  @override
+  int get defaultSessionDurationMinutes;
   @override
   DateTime get createdAt;
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
-import 'package:cobrador/router/app_router.dart';
+import 'package:cobrador/providers/auth_providers.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -13,43 +12,92 @@ class SplashPage extends ConsumerStatefulWidget {
   ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _lottieController;
+
+  bool _canNavigate = false;
+  bool _navigatePending = false;
+  int _cyclesCompleted = 0;
+  static const int _minCycles = 2;
+
   @override
   void initState() {
     super.initState();
-    _navigateToNext();
+
+    _lottieController = AnimationController(vsync: this);
+
+    _lottieController.addStatusListener(_onAnimationStatusChanged);
+
+    // Safety timeout: if auth never resolves, navigate anyway after 10 seconds.
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted && !_navigatePending) {
+        _canNavigate = true;
+        _triggerNavigation();
+      }
+    });
+
+    // Check if auth is already resolved on the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final authState = ref.read(authStateProvider);
+      if (!authState.isLoading) {
+        setState(() => _canNavigate = true);
+      }
+    });
   }
 
-  Future<void> _navigateToNext() async {
-    // Wait for animation to finish + a bit more
-    await Future.delayed(const Duration(milliseconds: 2500));
-    if (mounted) {
-      // Mark splash as shown
-      ref.read(splashShownProvider.notifier).state = true;
-      // Navigate to root and let the router's redirect logic decide where to go
-      context.go('/');
+  void _onAnimationStatusChanged(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+
+    _cyclesCompleted++;
+
+    if (_canNavigate && _cyclesCompleted >= _minCycles) {
+      _triggerNavigation();
+    } else {
+      _lottieController.forward(from: 0);
     }
+  }
+
+  void _triggerNavigation() {
+    if (_navigatePending || !mounted) return;
+    _navigatePending = true;
+
+    ref.read(splashShownProvider.notifier).state = true;
+    final destination = ref.read(preSplashDestinationProvider);
+    ref.read(preSplashDestinationProvider.notifier).state = null;
+    context.go(destination ?? '/');
+  }
+
+  @override
+  void dispose() {
+    _lottieController.removeStatusListener(_onAnimationStatusChanged);
+    _lottieController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen for future auth state changes after the first frame.
+    ref.listen(authStateProvider, (_, next) {
+      if (!next.isLoading && !_canNavigate) {
+        setState(() => _canNavigate = true);
+      }
+    });
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: colorScheme.tertiaryContainer,
       body: Center(
-        child: Hero(
-          tag: 'app_logo',
-          child: SvgPicture.asset('assets/images/COLIBRI.svg', width: 180)
-              .animate()
-              .fadeIn(duration: 800.ms)
-              .scale(
-                begin: const Offset(0.8, 0.8),
-                end: const Offset(1.0, 1.0),
-                delay: 200.ms,
-                duration: 600.ms,
-                curve: Curves.easeOutBack,
-              ),
+        child: Lottie.asset(
+          'assets/lotties/logoAnimado.json',
+          controller: _lottieController,
+          width: 240,
+          onLoaded: (composition) {
+            _lottieController.duration = composition.duration;
+            _lottieController.forward();
+          },
         ),
       ),
     );

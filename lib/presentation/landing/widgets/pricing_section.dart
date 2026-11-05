@@ -33,7 +33,7 @@ class PricingSection extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Elegí el plan que mejor se adapte a tus necesidades. Prueba gratuita de 5 días en cualquiera de ellos.',
+              'Elegí el plan que mejor se adapte a tus necesidades. Prueba gratuita de 15 días del plan Básico.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -75,7 +75,7 @@ class PricingSection extends ConsumerWidget {
             ScrollRevealWrapper(
               childBuilder: (context, isVisible) {
                 return FilledButton.icon(
-                      onPressed: () => context.go('/auth/register'),
+                      onPressed: () => context.go('/register'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
@@ -84,7 +84,7 @@ class PricingSection extends ConsumerWidget {
                       ),
                       icon: const Icon(Icons.flash_on_rounded),
                       label: const Text(
-                        'Comenzar prueba gratis de 5 días',
+                        'Comenzar prueba gratis de 15 días',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -133,9 +133,9 @@ class _PricingGrid extends StatelessWidget {
                     priceArs: basicPriceArs,
                     features: const [
                       'Registro ilimitado de pacientes',
-                      'Seguimiento automático de deudas',
-                      'Hasta 150 recordatorios de WhatsApp al mes',
-                      'Soporte por email',
+                      'Seguimiento automático de deudas por WhatsApp',
+                      'Reportes financieros mensuales',
+                      'Organización de tu día a día',
                     ],
                   )
                   .animate(target: isVisible ? 1 : 0)
@@ -155,8 +155,7 @@ class _PricingGrid extends StatelessWidget {
                     highlighted: true,
                     features: const [
                       'Todo lo incluido en el plan Básico',
-                      'Recordatorios de WhatsApp ilimitados',
-                      'Soporte prioritario por WhatsApp',
+                      'Recordatorios de turnos por WhatsApp',
                       'Acceso a nuevas funcionalidades primero',
                     ],
                   )

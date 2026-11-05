@@ -2,7 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
 import { defineSecret } from "firebase-functions/params";
-import { MercadoPagoConfig, PreApproval, Payment } from "mercadopago";
+import { MercadoPagoConfig, PreApproval, Invoice } from "mercadopago";
 
 const mpAccessToken = defineSecret("MP_ACCESS_TOKEN");
 const mpWebhookSecret = defineSecret("MP_WEBHOOK_SECRET");
@@ -17,10 +17,17 @@ const GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 function validateSignature(req: functions.https.Request, secret: string): boolean {
   try {
     const xSignature = req.headers["x-signature"] as string;
-    const xRequestId = req.headers["x-request-id"] as string;
-    const dataId = req.query["data.id"] as string;
+    const xRequestId = req.headers["x-request-id"] as string | undefined;
+    const dataId = req.query["data.id"] as string | undefined;
 
-    if (!xSignature) return false;
+    if (!xSignature || !dataId) {
+      functions.logger.warn("Webhook missing required fields", {
+        hasXSignature: !!xSignature,
+        hasDataId: !!dataId,
+        hasXRequestId: !!xRequestId,
+      });
+      return false;
+    }
 
     const parts = xSignature.split(",");
     let ts = "";
@@ -33,16 +40,39 @@ function validateSignature(req: functions.https.Request, secret: string): boolea
 
     if (!ts || !v1) return false;
 
-    const signedTemplate = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+    // x-request-id es opcional según docs de MP:
+    // Con header:  id:{data.id};request-id:{x-request-id};ts:{ts};
+    // Sin header:  id:{data.id};ts:{ts};
+    const signedTemplate = xRequestId
+      ? `id:${dataId};request-id:${xRequestId};ts:${ts};`
+      : `id:${dataId};ts:${ts};`;
+
     const computedHash = crypto
       .createHmac("sha256", secret)
       .update(signedTemplate)
       .digest("hex");
 
-    return crypto.timingSafeEqual(
+    if (computedHash.length !== v1.length) {
+      functions.logger.warn("Webhook signature length mismatch", {
+        hasXRequestId: !!xRequestId,
+        templateFormat: xRequestId ? "with-request-id" : "without-request-id",
+      });
+      return false;
+    }
+
+    const isValid = crypto.timingSafeEqual(
       Buffer.from(computedHash),
       Buffer.from(v1)
     );
+
+    if (!isValid) {
+      functions.logger.warn("Webhook signature mismatch", {
+        hasXRequestId: !!xRequestId,
+        templateFormat: xRequestId ? "with-request-id" : "without-request-id",
+      });
+    }
+
+    return isValid;
   } catch (e) {
     functions.logger.warn("Signature validation error", e);
     return false;
@@ -53,6 +83,7 @@ function validateSignature(req: functions.https.Request, secret: string): boolea
 function mapStatus(mpStatus: string | undefined): string {
   switch (mpStatus) {
     case "authorized": return "active";
+    case "pending":    return "pending";
     case "paused":     return "pastDue";
     case "cancelled":  return "suspended";
     default:           return "pastDue";
@@ -74,10 +105,14 @@ function calculateExpiresAt(nextPaymentDate: string | null | undefined): admin.f
 async function isAlreadyProcessed(eventId: string): Promise<boolean> {
   const ref = db.collection("webhook_events").doc(eventId);
   const snap = await ref.get();
-  if (snap.exists) return true;
-  // Mark as processed
-  await ref.set({ processedAt: admin.firestore.FieldValue.serverTimestamp() });
-  return false;
+  return snap.exists;
+}
+
+/** Mark an event as successfully processed (call AFTER processing succeeds). */
+async function markProcessed(eventId: string): Promise<void> {
+  await db.collection("webhook_events").doc(eventId).set({
+    processedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
 }
 
 export const mpWebhook = functions
@@ -86,14 +121,15 @@ export const mpWebhook = functions
 
     // 1. Validate signature
     const secret = mpWebhookSecret.value().trim();
-    if (secret) {
-      if (!validateSignature(req, secret)) {
-        functions.logger.warn("Invalid MP webhook signature — rejected.");
-        res.status(401).send("Unauthorized");
-        return;
-      }
-    } else {
-      functions.logger.warn("MP_WEBHOOK_SECRET not set. Skipping signature validation.");
+    if (!secret) {
+      functions.logger.error("MP_WEBHOOK_SECRET is not configured. Rejecting all webhook requests.");
+      res.status(500).send("Server misconfiguration");
+      return;
+    }
+    if (!validateSignature(req, secret)) {
+      functions.logger.warn("Invalid MP webhook signature — rejected.");
+      res.status(401).send("Unauthorized");
+      return;
     }
 
     try {
@@ -130,71 +166,120 @@ export const mpWebhook = functions
           return;
         }
 
-        const newStatus = mapStatus(mpStatus);
-        const reasonRaw = preapproval.reason || "";
-        const plan = reasonRaw.startsWith("plan:") ? reasonRaw.split(":")[1] : "basic";
+        const providerSnap = await db.collection("providers").doc(uid).get();
+        const providerData = providerSnap.data() || {};
 
-        // Use MP's next_payment_date + grace period instead of a fixed 30-day window
-        const expiresAt = newStatus === "active"
-          ? calculateExpiresAt((preapproval as any).next_payment_date)
-          : null;
+        const newStatus = mapStatus(mpStatus);
+
+        // Pending = user just clicked "subscribe" but hasn't paid yet.
+        // Only link the preapproval ID so the payment webhook can find them later;
+        // do NOT touch plan, status, or expiresAt (preserves trial data).
+        if (newStatus === "pending") {
+          await db.collection("providers").doc(uid).update({
+            mpPreapprovalId: id,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          await markProcessed(`${topic}:${id}`);
+          functions.logger.info(`Provider ${uid}: pending preapproval ${id} linked. Current plan preserved.`);
+          res.status(200).send("OK");
+          return;
+        }
+
+        const reasonRaw = preapproval.reason || "";
+        const reasonPlan = reasonRaw.toLowerCase().includes("premium") ? "premium" : "basic";
+
+        const currentExpiresAt = providerData.subscriptionExpiresAt?.toDate?.();
+        const hasFutureExpiry =
+          currentExpiresAt && currentExpiresAt.getTime() > Date.now();
+
+        let planToSet = newStatus === "active" ? reasonPlan : "none";
+        let expiresAt: admin.firestore.Timestamp | null =
+          newStatus === "active"
+            ? calculateExpiresAt((preapproval as any).next_payment_date)
+            : null;
+        let statusToSet = newStatus;
+
+        // If cancellation happens mid-cycle, keep access until existing expiry
+        if (mpStatus === "cancelled" && hasFutureExpiry) {
+          planToSet = providerData.plan || "basic";
+          expiresAt = providerData.subscriptionExpiresAt || null;
+          statusToSet = "pastDue";
+        }
 
         await db.collection("providers").doc(uid).update({
-          subscriptionStatus: newStatus,
-          plan: newStatus === "active" ? plan : "none",
+          subscriptionStatus: statusToSet,
+          plan: planToSet,
           subscriptionExpiresAt: expiresAt,
           mpPreapprovalId: id,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        functions.logger.info(`Provider ${uid} updated: status=${newStatus}, plan=${plan}, expiresAt=${expiresAt?.toDate()}`);
+        await markProcessed(`${topic}:${id}`);
+        functions.logger.info(`Provider ${uid} updated: status=${statusToSet}, plan=${planToSet}, expiresAt=${expiresAt?.toDate()}`);
         res.status(200).send("OK");
         return;
       }
 
       // ────── Monthly payment authorized ──────
       if (topic === "subscription_authorized_payment") {
-        const paymentClient = new Payment(client);
-        const payment = await paymentClient.get({ id });
+        // The id is an authorized_payment ID, NOT a regular payment ID.
+        // Use the Invoice client (/authorized_payments endpoint).
+        const invoiceClient = new Invoice(client);
+        const authorizedPayment = await invoiceClient.get({ id });
 
-        if (payment.status !== "approved") {
-          functions.logger.info(`Payment ${id} not approved (status: ${payment.status}). Ignoring.`);
+        const paymentStatus = authorizedPayment.payment?.status;
+        if (paymentStatus !== "approved") {
+          functions.logger.info(`Authorized payment ${id} not approved (status: ${paymentStatus}). Ignoring.`);
           res.status(200).send("OK - not approved");
           return;
         }
 
-        const preapprovalId = (payment as any).metadata?.preapproval_id
-          || (payment as any).preapproval_id;
-
+        const preapprovalId = authorizedPayment.preapproval_id;
         if (!preapprovalId) {
-          functions.logger.error(`No preapproval_id found in payment ${id}`);
+          functions.logger.error(`No preapproval_id in authorized payment ${id}`);
           res.status(200).send("OK - no preapproval_id");
           return;
         }
 
-        // Find the provider by mpPreapprovalId
+        // Fetch preapproval for next_payment_date and as uid fallback
+        const preApprovalClient = new PreApproval(client);
+        const preapproval = await preApprovalClient.get({ id: preapprovalId });
+        const newExpiresAt = calculateExpiresAt((preapproval as any).next_payment_date);
+
+        // Primary: find provider by mpPreapprovalId
+        // Fallback: use external_reference from preapproval
         const snapshot = await db.collection("providers")
           .where("mpPreapprovalId", "==", preapprovalId)
           .limit(1)
           .get();
 
-        if (snapshot.empty) {
-          functions.logger.error(`No provider found with mpPreapprovalId=${preapprovalId}`);
-          res.status(200).send("OK - no provider found");
-          return;
+        let providerRef: admin.firestore.DocumentReference;
+        if (!snapshot.empty) {
+          providerRef = snapshot.docs[0].ref;
+        } else {
+          const uid = preapproval.external_reference;
+          if (!uid) {
+            functions.logger.error(`No provider found and no external_reference in preapproval ${preapprovalId}`);
+            res.status(200).send("OK - no provider found");
+            return;
+          }
+          functions.logger.warn(`Provider not found by mpPreapprovalId — race condition fallback: uid=${uid}`);
+          providerRef = db.collection("providers").doc(uid);
         }
 
-        const providerRef = snapshot.docs[0].ref;
+        const reasonRaw = preapproval.reason || "";
+        const reasonPlan = reasonRaw.toLowerCase().includes("premium") ? "premium" : "basic";
 
-        // Extend subscription by 30 days + grace period from now
-        const newExpiresAt = calculateExpiresAt(null);
         await providerRef.update({
           subscriptionStatus: "active",
+          plan: reasonPlan,
           subscriptionExpiresAt: newExpiresAt,
+          mpPreapprovalId: preapprovalId,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        functions.logger.info(`Provider ${providerRef.id} renewed. New expiresAt: ${newExpiresAt.toDate()}`);
+        await markProcessed(`${topic}:${id}`);
+        functions.logger.info(`Provider ${providerRef.id} renewed. plan=${reasonPlan}, expiresAt=${newExpiresAt.toDate()}`);
         res.status(200).send("OK");
         return;
       }

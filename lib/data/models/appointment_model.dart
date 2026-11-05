@@ -12,6 +12,9 @@ class AppointmentModel {
   final AppointmentStatus status;
   final String? recurringAppointmentId;
 
+  /// Optional end time for the appointment. Null for legacy records.
+  final DateTime? endTime;
+
   const AppointmentModel({
     required this.id,
     required this.patientId,
@@ -22,6 +25,7 @@ class AppointmentModel {
     required this.amountPaid,
     required this.status,
     this.recurringAppointmentId,
+    this.endTime,
   });
 
   factory AppointmentModel.fromEntity(Appointment entity) {
@@ -35,10 +39,12 @@ class AppointmentModel {
       amountPaid: entity.amountPaid,
       status: entity.status,
       recurringAppointmentId: entity.recurringAppointmentId,
+      endTime: entity.endTime,
     );
   }
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json, String id) {
+    final rawEndTime = json['endTime'];
     return AppointmentModel(
       id: id,
       patientId: json['patientId'] as String,
@@ -52,6 +58,7 @@ class AppointmentModel {
         orElse: () => AppointmentStatus.unpaid,
       ),
       recurringAppointmentId: json['recurringAppointmentId'] as String?,
+      endTime: rawEndTime != null ? (rawEndTime as Timestamp).toDate() : null,
     );
   }
 
@@ -60,11 +67,14 @@ class AppointmentModel {
       'patientId': patientId,
       'providerId': providerId,
       'date': Timestamp.fromDate(date),
+      'dateKey':
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
       'concept': concept,
       'totalAmount': totalAmount,
       'amountPaid': amountPaid,
       'status': status.name,
       'recurringAppointmentId': recurringAppointmentId,
+      if (endTime != null) 'endTime': Timestamp.fromDate(endTime!),
     };
   }
 
@@ -79,6 +89,7 @@ class AppointmentModel {
       amountPaid: amountPaid,
       status: status,
       recurringAppointmentId: recurringAppointmentId,
+      endTime: endTime,
     );
   }
 }

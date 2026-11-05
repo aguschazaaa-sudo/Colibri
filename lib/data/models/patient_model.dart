@@ -47,7 +47,13 @@ class PatientModel {
     );
   }
 
-  /// Map from Model to Firestore JSON
+  /// Full Firestore representation of the patient, including the
+  /// server-owned ledger fields (`totalDebt`, `balance`).
+  ///
+  /// Do NOT use this for client writes: `totalDebt` and `balance` are
+  /// maintained exclusively by Cloud Functions triggers, and writing them from
+  /// the client clobbers the server-computed values (and is rejected by
+  /// Firestore rules). Use [toCreateJson] or [toUpdateJson] instead.
   Map<String, dynamic> toJson() {
     return {
       'providerId': providerId,
@@ -56,6 +62,34 @@ class PatientModel {
       'totalDebt': totalDebt,
       'balance': balance,
       'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  /// Payload for creating a new patient document.
+  ///
+  /// The ledger fields are always initialized to `0`, regardless of the values
+  /// carried by the model: a new patient never starts with debt or credit.
+  /// Firestore rules enforce `totalDebt == 0` and `balance == 0` on create.
+  Map<String, dynamic> toCreateJson() {
+    return {
+      'providerId': providerId,
+      'name': name,
+      'phoneNumber': phoneNumber,
+      'totalDebt': 0.0,
+      'balance': 0.0,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  /// Payload for updating an existing patient document.
+  ///
+  /// Contains ONLY the user-editable fields. Ledger fields (`totalDebt`,
+  /// `balance`) and immutable fields (`providerId`, `createdAt`) are
+  /// intentionally excluded so a client edit can never overwrite them.
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      'name': name,
+      'phoneNumber': phoneNumber,
     };
   }
 

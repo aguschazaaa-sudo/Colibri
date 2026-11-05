@@ -1,5 +1,6 @@
 import 'package:cobrador/domain/dashboard_report.dart';
 import 'package:cobrador/domain/failure.dart';
+import 'package:cobrador/domain/monthly_snapshot.dart';
 import 'package:cobrador/domain/provider.dart';
 import 'package:cobrador/domain/subscription_pricing.dart';
 import 'vacation_period.dart';
@@ -42,4 +43,14 @@ abstract class ProviderRepository {
 
   /// Watches the global subscription pricing document in `metadata/pricing`.
   Stream<SubscriptionPricing> watchSubscriptionPricing();
+
+  /// Watches the last [limit] monthly revenue snapshots for a provider,
+  /// ordered from most recent to oldest.
+  ///
+  /// Snapshots are stored at:
+  /// `providers/{providerId}/metrics/dashboard/monthly_snapshots/{YYYY-MM}`
+  Stream<List<MonthlySnapshot>> watchMonthlySnapshots(
+    String providerId, {
+    int limit = 12,
+  });
 }

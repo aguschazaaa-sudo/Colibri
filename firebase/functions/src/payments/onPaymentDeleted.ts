@@ -1,6 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { incrementDashboardMetrics } from "../utils/metrics_utils";
+import { applyDashboardDeltaInTx } from "../utils/metrics_utils";
 import { revertPaymentLIFO } from "../utils/payment_distribution";
 
 const db = admin.firestore();
@@ -16,7 +16,9 @@ const db = admin.firestore();
  *   2. If the balance is insufficient to cover the reversal, the remainder becomes missing money that we must recover from appointments.
  *   3. It queries all appointments with `amountPaid > 0` ordered by date DESCENDING (LIFO).
  *   4. Substracts the missing money from these appointments, returning them to "unpaid", increasing `totalDebt`.
- *   5. Updates the dashboard's `totalToCollect` and `monthlyRevenue` metrics.
+ *   5. Updates the dashboard inside the same transaction (atomic, retry-safe):
+ *      `totalToCollect += newTotalDebt - currentTotalDebt` and
+ *      `monthlyRevenue -= amount`.
  */
 export const onPaymentDeleted = functions
   .runWith({ maxInstances: 10 })
@@ -38,14 +40,19 @@ export const onPaymentDeleted = functions
       .collection("patients")
       .doc(patientId);
 
-    let netDebtIncrease = 0;
-
     try {
       await db.runTransaction(async (transaction) => {
+        // NOTE: no state may leak out of this closure — Firestore re-runs it
+        // on contention, so every value is recomputed per attempt.
         const patientDoc = await transaction.get(patientRef);
 
         if (!patientDoc.exists) {
           console.error(`[onPaymentDeleted] Patient ${patientId} not found.`);
+          // No ledger to revert, but the revenue is still gone (same behavior
+          // as before: revenue was decremented regardless of the patient doc).
+          applyDashboardDeltaInTx(transaction, providerId, {
+            monthlyRevenue: -paymentAmount,
+          });
           return;
         }
 
@@ -84,7 +91,6 @@ export const onPaymentDeleted = functions
           );
 
           newTotalDebt += totalDebtIncrease;
-          netDebtIncrease += totalDebtIncrease;
         }
 
         transaction.update(patientRef, {
@@ -92,18 +98,14 @@ export const onPaymentDeleted = functions
           balance: newBalance,
         });
 
-        console.log(
-          `[onPaymentDeleted] Reverted payment ${paymentId}. ` +
-          `Amount: ${paymentAmount}. Debt Increase: ${netDebtIncrease}. ` +
-          `totalDebt: ${currentTotalDebt} → ${newTotalDebt}. ` +
-          `balance: ${currentBalance} → ${newBalance}`
-        );
-      });
+        // Dashboard: exact totalDebt change (debt to collect goes back up) and
+        // lost revenue, committed atomically with the patient write.
+        applyDashboardDeltaInTx(transaction, providerId, {
+          totalToCollect: newTotalDebt - currentTotalDebt,
+          monthlyRevenue: -paymentAmount,
+        });
 
-      // Update provider metrics: we lost revenue and gained debt to collect
-      await incrementDashboardMetrics(providerId, {
-        totalToCollect: netDebtIncrease,
-        monthlyRevenue: -paymentAmount, // subtract revenue
+        functions.logger.info("[onPaymentDeleted] ledger reverted", { paymentId });
       });
     } catch (error) {
       console.error(`[onPaymentDeleted] Transaction failed for ${paymentId}:`, error);

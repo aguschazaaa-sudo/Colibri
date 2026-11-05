@@ -26,6 +26,7 @@ mixin _$Appointment {
   double get amountPaid => throw _privateConstructorUsedError;
   AppointmentStatus get status => throw _privateConstructorUsedError;
   String? get recurringAppointmentId => throw _privateConstructorUsedError;
+  DateTime? get endTime => throw _privateConstructorUsedError;
 
   /// Create a copy of Appointment
   /// with the given fields replaced by the non-null parameter values.
@@ -51,6 +52,7 @@ abstract class $AppointmentCopyWith<$Res> {
     double amountPaid,
     AppointmentStatus status,
     String? recurringAppointmentId,
+    DateTime? endTime,
   });
 }
 
@@ -78,6 +80,7 @@ class _$AppointmentCopyWithImpl<$Res, $Val extends Appointment>
     Object? amountPaid = null,
     Object? status = null,
     Object? recurringAppointmentId = freezed,
+    Object? endTime = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -126,6 +129,11 @@ class _$AppointmentCopyWithImpl<$Res, $Val extends Appointment>
                     ? _value.recurringAppointmentId
                     : recurringAppointmentId // ignore: cast_nullable_to_non_nullable
                         as String?,
+            endTime:
+                freezed == endTime
+                    ? _value.endTime
+                    : endTime // ignore: cast_nullable_to_non_nullable
+                        as DateTime?,
           )
           as $Val,
     );
@@ -151,6 +159,7 @@ abstract class _$$AppointmentImplCopyWith<$Res>
     double amountPaid,
     AppointmentStatus status,
     String? recurringAppointmentId,
+    DateTime? endTime,
   });
 }
 
@@ -177,6 +186,7 @@ class __$$AppointmentImplCopyWithImpl<$Res>
     Object? amountPaid = null,
     Object? status = null,
     Object? recurringAppointmentId = freezed,
+    Object? endTime = freezed,
   }) {
     return _then(
       _$AppointmentImpl(
@@ -225,6 +235,11 @@ class __$$AppointmentImplCopyWithImpl<$Res>
                 ? _value.recurringAppointmentId
                 : recurringAppointmentId // ignore: cast_nullable_to_non_nullable
                     as String?,
+        endTime:
+            freezed == endTime
+                ? _value.endTime
+                : endTime // ignore: cast_nullable_to_non_nullable
+                    as DateTime?,
       ),
     );
   }
@@ -243,6 +258,7 @@ class _$AppointmentImpl extends _Appointment {
     this.amountPaid = 0.0,
     this.status = AppointmentStatus.unpaid,
     this.recurringAppointmentId,
+    this.endTime,
   }) : super._();
 
   @override
@@ -265,10 +281,12 @@ class _$AppointmentImpl extends _Appointment {
   final AppointmentStatus status;
   @override
   final String? recurringAppointmentId;
+  @override
+  final DateTime? endTime;
 
   @override
   String toString() {
-    return 'Appointment(id: $id, patientId: $patientId, providerId: $providerId, date: $date, concept: $concept, totalAmount: $totalAmount, amountPaid: $amountPaid, status: $status, recurringAppointmentId: $recurringAppointmentId)';
+    return 'Appointment(id: $id, patientId: $patientId, providerId: $providerId, date: $date, concept: $concept, totalAmount: $totalAmount, amountPaid: $amountPaid, status: $status, recurringAppointmentId: $recurringAppointmentId, endTime: $endTime)';
   }
 
   @override
@@ -289,7 +307,8 @@ class _$AppointmentImpl extends _Appointment {
                 other.amountPaid == amountPaid) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.recurringAppointmentId, recurringAppointmentId) ||
-                other.recurringAppointmentId == recurringAppointmentId));
+                other.recurringAppointmentId == recurringAppointmentId) &&
+            (identical(other.endTime, endTime) || other.endTime == endTime));
   }
 
   @override
@@ -304,6 +323,7 @@ class _$AppointmentImpl extends _Appointment {
     amountPaid,
     status,
     recurringAppointmentId,
+    endTime,
   );
 
   /// Create a copy of Appointment
@@ -326,6 +346,7 @@ abstract class _Appointment extends Appointment {
     final double amountPaid,
     final AppointmentStatus status,
     final String? recurringAppointmentId,
+    final DateTime? endTime,
   }) = _$AppointmentImpl;
   const _Appointment._() : super._();
 
@@ -347,6 +368,8 @@ abstract class _Appointment extends Appointment {
   AppointmentStatus get status;
   @override
   String? get recurringAppointmentId;
+  @override
+  DateTime? get endTime;
 
   /// Create a copy of Appointment
   /// with the given fields replaced by the non-null parameter values.

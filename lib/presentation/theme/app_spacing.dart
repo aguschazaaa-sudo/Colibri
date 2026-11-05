@@ -71,6 +71,9 @@ class AppSpacing {
   /// Maximum content width for ultra-wide screens.
   static const double maxContentWidth = 1200;
 
+  /// Maximum content width for the main application shell body.
+  static const double maxBodyWidth = 1000;
+
   /// Wraps [child] in a centered, max-width-constrained box.
   /// Use inside sections that span full width.
   static Widget constrained({required Widget child}) {

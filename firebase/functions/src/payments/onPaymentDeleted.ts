@@ -15,8 +15,9 @@ const db = admin.firestore();
  *   1. Deducts the payment amount from the patient's `balance`.
  *   2. If the balance is insufficient to cover the reversal, the remainder becomes missing money that we must recover from appointments.
  *   3. It queries all appointments with `amountPaid > 0` ordered by date DESCENDING (LIFO).
- *   4. Substracts the missing money from these appointments, returning them to "unpaid", increasing `totalDebt`.
- *   5. Updates the dashboard's `totalToCollect` and `monthlyRevenue` metrics.
+ *   4. Substracts the missing money from these appointments, returning them to "unpaid".
+ *      `onAppointmentWritten` then recomputes `totalDebt`.
+ *   5. Updates the dashboard's `monthlyRevenue` metric.
  */
 export const onPaymentDeleted = functions
   .runWith({ maxInstances: 10 })
@@ -38,8 +39,6 @@ export const onPaymentDeleted = functions
       .collection("patients")
       .doc(patientId);
 
-    let netDebtIncrease = 0;
-
     try {
       await db.runTransaction(async (transaction) => {
         const patientDoc = await transaction.get(patientRef);
@@ -51,10 +50,8 @@ export const onPaymentDeleted = functions
 
         const patientData = patientDoc.data()!;
         const currentBalance: number = patientData.balance || 0;
-        const currentTotalDebt: number = patientData.totalDebt || 0;
 
         let newBalance = currentBalance;
-        let newTotalDebt = currentTotalDebt;
 
         // Try to deduct from balance first
         if (newBalance >= paymentAmount) {
@@ -77,33 +74,18 @@ export const onPaymentDeleted = functions
 
           const paidSnapshot = await transaction.get(paidAppointmentsQuery);
 
-          const { totalDebtIncrease } = revertPaymentLIFO(
-            transaction,
-            missingMoney,
-            paidSnapshot.docs
-          );
-
-          newTotalDebt += totalDebtIncrease;
-          netDebtIncrease += totalDebtIncrease;
+          // Un-pays appointments (LIFO); onAppointmentWritten recomputes totalDebt.
+          revertPaymentLIFO(transaction, missingMoney, paidSnapshot.docs);
         }
 
-        transaction.update(patientRef, {
-          totalDebt: newTotalDebt,
-          balance: newBalance,
-        });
+        transaction.update(patientRef, { balance: newBalance });
 
-        console.log(
-          `[onPaymentDeleted] Reverted payment ${paymentId}. ` +
-          `Amount: ${paymentAmount}. Debt Increase: ${netDebtIncrease}. ` +
-          `totalDebt: ${currentTotalDebt} → ${newTotalDebt}. ` +
-          `balance: ${currentBalance} → ${newBalance}`
-        );
+        console.log(`[onPaymentDeleted] Reverted payment ${paymentId}.`);
       });
 
-      // Update provider metrics: we lost revenue and gained debt to collect
+      // Revenue metric only; totalToCollect is owned by onAppointmentWritten.
       await incrementDashboardMetrics(providerId, {
-        totalToCollect: netDebtIncrease,
-        monthlyRevenue: -paymentAmount, // subtract revenue
+        monthlyRevenue: -paymentAmount,
       });
     } catch (error) {
       console.error(`[onPaymentDeleted] Transaction failed for ${paymentId}:`, error);

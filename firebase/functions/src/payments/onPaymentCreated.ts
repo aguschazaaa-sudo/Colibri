@@ -14,8 +14,11 @@ const db = admin.firestore();
  * Responsibilities:
  *   1. Distributes the payment amount across unpaid appointments (FIFO by date,
  *      or to a specific appointment if `appointmentId` is set).
- *   2. Decreases the patient's totalDebt by the amount applied to appointments.
- *   3. Increases the patient's balance if there's leftover money after all debts.
+ *   2. Increases the patient's balance if there's leftover money after all debts.
+ *   3. Marks the payment with `appliedAt` (idempotency guard for retries).
+ *
+ * `totalDebt` is NOT written here: `onAppointmentWritten` recomputes it from
+ * the appointments this trigger updates.
  */
 export const onPaymentCreated = functions
   .runWith({ maxInstances: 10 })
@@ -45,62 +48,66 @@ export const onPaymentCreated = functions
       .collection("patients")
       .doc(patientId);
 
+    const paymentRef = snapshot.ref;
+
     try {
       const txResult = await db.runTransaction(async (transaction) => {
-        // 1. Read patient + unpaid appointments (all reads before writes)
+        // 1. Read payment + patient + unpaid appointments (all reads before writes)
         const appointmentsQuery = patientRef
           .collection("appointments")
           .where("providerId", "==", providerId)
           .where("status", "==", "unpaid")
           .orderBy("date", "asc");
 
-        const [patientDoc, unpaidSnapshot] = await Promise.all([
+        const [paymentDoc, patientDoc, unpaidSnapshot] = await Promise.all([
+          transaction.get(paymentRef),
           transaction.get(patientRef),
           transaction.get(appointmentsQuery),
         ]);
+
+        // Idempotency guard: triggers are delivered at-least-once. Without this
+        // a retried event would distribute the same payment twice.
+        if (!paymentDoc.exists || paymentDoc.data()?.appliedAt) {
+          console.log(`[onPaymentCreated] Payment ${paymentId} already applied. Skipping.`);
+          return;
+        }
 
         if (!patientDoc.exists) {
           console.error(`[onPaymentCreated] Patient ${patientId} not found.`);
           return;
         }
 
-        const patientData = patientDoc.data()!;
-        const currentTotalDebt: number = patientData.totalDebt || 0;
-        const currentBalance: number = patientData.balance || 0;
+        const currentBalance: number = patientDoc.data()!.balance || 0;
 
-        // 2. FIFO Payment Distribution
-        const { totalDebtDecrease, leftoverBalance: moneyLeftForBalance } = distributePaymentFIFO(
+        // 2. FIFO Payment Distribution (updates appointments' amountPaid/status;
+        //    `onAppointmentWritten` recomputes totalDebt from them).
+        const { leftoverBalance } = distributePaymentFIFO(
           transaction,
           paymentAmount,
           unpaidSnapshot.docs,
           specificAppointmentId
         );
 
-        // 3. Update patient's totalDebt and balance
-        const newTotalDebt = Math.max(0, currentTotalDebt - totalDebtDecrease);
-        const newBalance = currentBalance + moneyLeftForBalance;
+        // 3. Leftover money → saldo a favor
+        if (leftoverBalance > 0) {
+          transaction.update(patientRef, {
+            balance: currentBalance + leftoverBalance,
+          });
+        }
 
-        transaction.update(patientRef, {
-          totalDebt: newTotalDebt,
-          balance: newBalance,
+        transaction.update(paymentRef, {
+          appliedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        console.log(
-          `[onPaymentCreated] Payment ${paymentId} processed. ` +
-          `Applied: $${totalDebtDecrease}. To balance: $${moneyLeftForBalance}. ` +
-          `totalDebt: ${currentTotalDebt} → ${newTotalDebt}. ` +
-          `balance: ${currentBalance} → ${newBalance}`
-        );
+        console.log(`[onPaymentCreated] Payment ${paymentId} processed.`);
 
-        // Return values needed for dashboard update outside the transaction
-        return { totalDebtDecrease, totalPaymentAmount: paymentAmount };
+        return { totalPaymentAmount: paymentAmount };
       });
 
-      // Update the pre-calculated dashboard metrics (best-effort, outside transaction)
+      // Revenue metric only; totalToCollect is owned by onAppointmentWritten.
       if (txResult) {
         await incrementDashboardMetrics(providerId, {
-          totalToCollect: -txResult.totalDebtDecrease, // reduce debt owed
-          monthlyRevenue: txResult.totalPaymentAmount,  // add to monthly earnings
+          monthlyRevenue: txResult.totalPaymentAmount,
         });
       }
     } catch (error) {
